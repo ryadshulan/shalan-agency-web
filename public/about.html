@@ -33,7 +33,7 @@
     <div class="fixed top-20 right-10 w-96 h-96 bg-pink-600/20 blur-[150px] -z-10 rounded-full"></div>
     <div class="fixed bottom-20 left-10 w-96 h-96 bg-blue-600/20 blur-[150px] -z-10 rounded-full"></div>
 
-   <header class="fixed top-6 inset-x-0 z-50 px-4">
+    <header class="fixed top-6 inset-x-0 z-50 px-4">
         <nav class="max-w-7xl mx-auto glossy-nav rounded-full px-6 py-3 flex justify-between items-center relative">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-white shadow-lg shadow-pink-500/50">ش</div>
@@ -51,7 +51,7 @@
                 <li class="w-full lg:w-auto"><a href="design.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">التصميم</a></li>
                 <li class="w-full lg:w-auto"><a href="execution.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">التنفيذ</a></li>
                 <li class="w-full lg:w-auto"><a href="packages.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">الباقات</a></li>
-                <li class="w-full lg:w-auto"><a href="about.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">من نحن</a></li>
+                <li class="w-full lg:w-auto"><a href="about.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full bg-white/10 transition-all text-center">من نحن</a></li>
                 <li class="w-full lg:w-auto mt-4 lg:mt-0"><a href="index.html#order-section" onclick="toggleMobileMenu()" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 px-6 py-3 rounded-full transition-all shadow-lg text-center block">اطلب الخدمة</a></li>
             </ul>
         </nav>
@@ -68,7 +68,9 @@
     <footer class="text-center py-8 border-t border-white/5 text-gray-500 text-sm mt-auto">
         جميع الحقوق محفوظة © لوكالة شعلان للدعاية والإعلان
     </footer>
-function toggleMobileMenu() {
+
+    <script>
+        function toggleMobileMenu() {
             const menu = document.getElementById('navMenu');
             const icon = document.getElementById('menuIcon');
             
@@ -84,5 +86,6 @@ function toggleMobileMenu() {
                 icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>';
             }
         }
+    </script>
 </body>
 </html>
