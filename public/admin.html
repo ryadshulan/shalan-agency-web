@@ -244,7 +244,7 @@
                         
                         <div class="border-t border-white/10 pt-4 mt-4">
                             <label class="block text-sm font-bold text-orange-400 mb-2">2. صور المعرض المتعددة (Gallery)</label>
-                            <p class="text-xs text-gray-400 mb-2">حدد عدة صور في نفس الوقت. الكود سيقوم بضغطها تلقائياً.</p>
+                            <p class="text-xs text-gray-400 mb-2">حدد عدة صور في نفس الوقت.</p>
                             <input type="file" id="exec_project_gallery" accept="image/*" multiple class="w-full px-4 py-2 rounded-xl glass-input file:bg-orange-600 file:text-white file:border-0 file:rounded-full file:px-4 file:py-1">
                             <div id="exec_gallery_preview" class="flex gap-2 mt-2 overflow-x-auto hidden py-2"></div>
                         </div>
@@ -332,7 +332,7 @@
             if (btoa(input) === SECRET_PASS) {
                 sessionStorage.setItem('shalan_admin_auth', 'true'); document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('appLayout').classList.remove('hidden'); document.getElementById('appLayout').classList.add('flex');
-                loadAllData(); // تحميل البيانات بعد تسجيل الدخول
+                loadAllData();
             } else { document.getElementById('loginError').classList.remove('hidden'); }
         });
         window.logoutAdmin = function() { sessionStorage.removeItem('shalan_admin_auth'); location.reload(); };
@@ -366,14 +366,43 @@
             });
         }
 
-        // ================= 2. محرك الاتصال بالسيرفر (API) =================
+        // ================= 2. محرك الاتصال الذكي (Hybrid API) =================
+        // يقوم بالحفظ في السيرفر، وإن لم يكن السيرفر يعمل، يحفظ في المتصفح مؤقتاً لضمان عمل الواجهة
         async function api(endpoint, method = 'GET', body = null) {
             const options = { method, headers: { 'Content-Type': 'application/json' } };
             if (body) options.body = JSON.stringify(body);
             try {
                 const res = await fetch('/api/' + endpoint, options);
-                return await res.json();
-            } catch(e) { console.error(e); return {success: false, data: []}; }
+                if (res.ok) return await res.json();
+                throw new Error("Server error");
+            } catch(e) { 
+                console.warn("⚠️ السيرفر غير متصل، يتم استخدام التخزين المحلي مؤقتاً:", endpoint);
+                
+                const table = endpoint.split('/')[0];
+                const id = endpoint.split('/')[1];
+                let storageKey = 'shalan_' + table;
+                if (storageKey === 'shalan_package_orders') storageKey = 'shalan_orders'; // توحيد المسمى القديم
+                
+                let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+                
+                if (method === 'GET') {
+                    return { success: true, data: data };
+                } else if (method === 'POST') {
+                    body._id = Date.now().toString();
+                    data.push(body);
+                    localStorage.setItem(storageKey, JSON.stringify(data));
+                    return { success: true, data: body };
+                } else if (method === 'PUT') {
+                    const index = data.findIndex(item => String(item._id || item.id) === String(id));
+                    if(index > -1) { data[index] = { ...data[index], ...body }; localStorage.setItem(storageKey, JSON.stringify(data)); }
+                    return { success: true, data: body };
+                } else if (method === 'DELETE') {
+                    data = data.filter(item => String(item._id || item.id) !== String(id));
+                    localStorage.setItem(storageKey, JSON.stringify(data));
+                    return { success: true };
+                }
+                return { success: false, data: [] };
+            }
         }
 
         let shalanCategories = [], shalanClients = [], shalanProjects = [], shalanPackages = [], shalanExecCategories = [], shalanExecProjects = [];
@@ -391,16 +420,16 @@
 
         window.cancelEdit = function(type) {
             editStates[type] = null;
-            if(type === 'category') { document.getElementById('addCategoryForm').reset(); document.getElementById('catSubmitBtn').innerText = 'حفظ القسم'; document.getElementById('catCancelEditBtn').classList.add('hidden'); document.getElementById('cat_img_preview').classList.add('hidden'); } 
-            else if(type === 'client') { document.getElementById('addClientForm').reset(); document.getElementById('clientSubmitBtn').innerText = 'حفظ العميل'; document.getElementById('clientCancelEditBtn').classList.add('hidden'); document.getElementById('client_img_preview').classList.add('hidden'); } 
-            else if(type === 'project') { document.getElementById('addProjectForm').reset(); document.getElementById('project_thumb_preview').classList.add('hidden'); document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false); toggleMediaInputs('design'); document.getElementById('projectSubmitBtn').innerText = 'رفع ونشر المشروع'; document.getElementById('projectCancelEditBtn').classList.add('hidden'); } 
-            else if(type === 'package') { document.getElementById('addPackageForm').reset(); document.getElementById('pkg_img_preview').classList.add('hidden'); document.getElementById('optionsContainer').innerHTML = ''; addOptionRow(); document.getElementById('packageSubmitBtn').innerText = 'حفظ الباقة'; document.getElementById('packageCancelEditBtn').classList.add('hidden'); } 
-            else if(type === 'exec_category') { document.getElementById('addExecCategoryForm').reset(); document.getElementById('execCatSubmitBtn').innerText = 'حفظ قسم التنفيذ'; document.getElementById('execCatCancelEditBtn').classList.add('hidden'); } 
-            else if(type === 'exec_project') { document.getElementById('addExecProjectForm').reset(); document.getElementById('exec_project_thumb_preview').classList.add('hidden'); document.getElementById('exec_gallery_preview').innerHTML = ''; document.getElementById('exec_gallery_preview').classList.add('hidden'); document.querySelectorAll('.exec-cat-checkbox').forEach(cb => cb.checked = false); document.getElementById('execProjectSubmitBtn').innerText = 'حفظ مشروع التنفيذ'; document.getElementById('execProjectCancelEditBtn').classList.add('hidden'); }
+            if(type === 'category') { document.getElementById('addCategoryForm').reset(); document.getElementById('catSubmitBtn').innerText = 'حفظ القسم'; document.getElementById('catCancelEditBtn').classList.add('hidden'); document.getElementById('cat_img_preview').classList.add('hidden'); document.getElementById('catFormTitle').innerText = 'إضافة قسم تصميم جديد'; } 
+            else if(type === 'client') { document.getElementById('addClientForm').reset(); document.getElementById('clientSubmitBtn').innerText = 'حفظ العميل'; document.getElementById('clientCancelEditBtn').classList.add('hidden'); document.getElementById('client_img_preview').classList.add('hidden'); document.getElementById('clientFormTitle').innerText = 'إضافة عميل'; } 
+            else if(type === 'project') { document.getElementById('addProjectForm').reset(); document.getElementById('project_thumb_preview').classList.add('hidden'); document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false); toggleMediaInputs('design'); document.getElementById('projectSubmitBtn').innerText = 'رفع ونشر المشروع'; document.getElementById('projectCancelEditBtn').classList.add('hidden'); document.getElementById('projectFormTitle').innerText = 'إضافة عمل تصميم'; } 
+            else if(type === 'package') { document.getElementById('addPackageForm').reset(); document.getElementById('pkg_img_preview').classList.add('hidden'); document.getElementById('optionsContainer').innerHTML = ''; addOptionRow(); document.getElementById('packageSubmitBtn').innerText = 'حفظ الباقة'; document.getElementById('packageCancelEditBtn').classList.add('hidden'); document.getElementById('packageFormTitle').innerText = 'إضافة باقة'; } 
+            else if(type === 'exec_category') { document.getElementById('addExecCategoryForm').reset(); document.getElementById('execCatSubmitBtn').innerText = 'حفظ قسم التنفيذ'; document.getElementById('execCatCancelEditBtn').classList.add('hidden'); document.getElementById('execCatFormTitle').innerText = 'إضافة قسم تنفيذ'; } 
+            else if(type === 'exec_project') { document.getElementById('addExecProjectForm').reset(); document.getElementById('exec_project_thumb_preview').classList.add('hidden'); document.getElementById('exec_gallery_preview').innerHTML = ''; document.getElementById('exec_gallery_preview').classList.add('hidden'); document.querySelectorAll('.exec-cat-checkbox').forEach(cb => cb.checked = false); document.getElementById('execProjectSubmitBtn').innerText = 'حفظ مشروع التنفيذ'; document.getElementById('execProjectCancelEditBtn').classList.add('hidden'); document.getElementById('execProjectFormTitle').innerText = 'إضافة مشروع تنفيذ'; }
         }
 
         window.deleteItem = async function(type, id) {
-            if(!confirm('متأكد من الحذف نهائياً من قاعدة البيانات؟')) return;
+            if(!confirm('متأكد من الحذف نهائياً؟')) return;
             await api(`${type}/${id}`, 'DELETE');
             loadAllData();
         }
@@ -408,39 +437,51 @@
         // ================= 3. أقسام التصميم =================
         function renderCategories() {
             const list = document.getElementById('categoriesList'); list.innerHTML = '';
-            shalanCategories.forEach(cat => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3">${cat.img ? `<img src="${cat.img}" class="w-10 h-10 object-cover rounded">` : `<div class="w-10 h-10 bg-pink-500/20 rounded"></div>`}<div><span class="font-bold block">${cat.name}</span></div></div><div><button onclick="editCategory('${cat._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('categories', '${cat._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; });
+            shalanCategories.forEach(cat => { 
+                const catId = cat._id || cat.id;
+                list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3">${cat.img ? `<img src="${cat.img}" class="w-10 h-10 object-cover rounded">` : `<div class="w-10 h-10 bg-pink-500/20 rounded"></div>`}<div><span class="font-bold block">${cat.name}</span></div></div><div><button onclick="editCategory('${catId}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('categories', '${catId}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; 
+            });
         }
         window.editCategory = function(id) {
-            const cat = shalanCategories.find(c => c._id === id); editStates.category = id;
+            const cat = shalanCategories.find(c => String(c._id || c.id) === String(id)); editStates.category = id;
             document.getElementById('cat_name').value = cat.name; document.getElementById('cat_tag').value = cat.tag;
             if(cat.img) { document.getElementById('cat_img_preview').src = cat.img; document.getElementById('cat_img_preview').classList.remove('hidden'); }
-            document.getElementById('catSubmitBtn').innerText = 'تحديث'; document.getElementById('catCancelEditBtn').classList.remove('hidden');
+            document.getElementById('catSubmitBtn').innerText = 'تحديث القسم'; document.getElementById('catCancelEditBtn').classList.remove('hidden'); document.getElementById('catFormTitle').innerText = 'تعديل قسم تصميم';
         }
         document.getElementById('addCategoryForm').addEventListener('submit', async function(e) {
             e.preventDefault(); const file = document.getElementById('cat_img').files[0]; const base64Img = file ? await compressImageAndGetBase64(file) : null; 
             const payload = { name: document.getElementById('cat_name').value, tag: document.getElementById('cat_tag').value };
             if(base64Img) payload.img = base64Img;
+            
+            const btn = document.getElementById('catSubmitBtn'); const origTxt = btn.innerText; btn.innerText = 'جاري الحفظ...';
             if(editStates.category) await api(`categories/${editStates.category}`, 'PUT', payload);
             else await api('categories', 'POST', payload);
-            cancelEdit('category'); loadAllData();
+            
+            cancelEdit('category'); loadAllData(); btn.innerText = origTxt;
         });
 
         // ================= 4. أقسام التنفيذ =================
         function renderExecCategories() {
             const list = document.getElementById('execCategoriesList'); list.innerHTML = '';
-            shalanExecCategories.forEach(cat => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div><span class="font-bold block">${cat.name}</span><span class="text-xs text-gray-400">${cat.desc}</span></div><div><button onclick="editExecCategory('${cat._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('exec_categories', '${cat._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; });
+            shalanExecCategories.forEach(cat => { 
+                const catId = cat._id || cat.id;
+                list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div><span class="font-bold block">${cat.name}</span><span class="text-xs text-gray-400">${cat.desc}</span></div><div><button onclick="editExecCategory('${catId}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('exec_categories', '${catId}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; 
+            });
         }
         window.editExecCategory = function(id) {
-            const cat = shalanExecCategories.find(c => c._id === id); editStates.exec_category = id;
+            const cat = shalanExecCategories.find(c => String(c._id || c.id) === String(id)); editStates.exec_category = id;
             document.getElementById('exec_cat_name').value = cat.name; document.getElementById('exec_cat_tag').value = cat.tag; document.getElementById('exec_cat_desc').value = cat.desc;
-            document.getElementById('execCatSubmitBtn').innerText = 'تحديث'; document.getElementById('execCatCancelEditBtn').classList.remove('hidden');
+            document.getElementById('execCatSubmitBtn').innerText = 'تحديث القسم'; document.getElementById('execCatCancelEditBtn').classList.remove('hidden'); document.getElementById('execCatFormTitle').innerText = 'تعديل قسم تنفيذ';
         }
         document.getElementById('addExecCategoryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            const btn = document.getElementById('execCatSubmitBtn'); const origTxt = btn.innerText; btn.innerText = 'جاري الحفظ...';
             const payload = { name: document.getElementById('exec_cat_name').value, tag: document.getElementById('exec_cat_tag').value, desc: document.getElementById('exec_cat_desc').value };
+            
             if(editStates.exec_category) await api(`exec_categories/${editStates.exec_category}`, 'PUT', payload);
             else await api('exec_categories', 'POST', payload);
-            cancelEdit('exec_category'); loadAllData();
+            
+            cancelEdit('exec_category'); loadAllData(); btn.innerText = origTxt;
         });
 
         // ================= الاستيراد عبر ملف CSV للأقسام فقط =================
@@ -463,10 +504,8 @@
                     }
                 }
                 if(newItems.length > 0) {
-                    alert(`جاري استيراد ${newItems.length} قسم إلى قاعدة البيانات...`);
-                    for(let item of newItems) {
-                        await api(type, 'POST', item); // يتم الإرسال للسيرفر فوراً
-                    }
+                    alert(`جاري استيراد ${newItems.length} قسم...`);
+                    for(let item of newItems) { await api(type, 'POST', item); }
                     loadAllData();
                     alert("تم الاستيراد بنجاح!");
                 } else { alert("لم يتم العثور على بيانات صحيحة في الملف."); }
@@ -483,19 +522,22 @@
         // --- أعمال التصميم ---
         function renderProjects() {
             const list = document.getElementById('projectsList'); list.innerHTML = '';
-            shalanProjects.forEach(proj => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3"><img src="${proj.thumbnail || 'https://via.placeholder.com/150'}" class="w-16 h-12 object-cover rounded"><span>${proj.title}</span></div><div><button onclick="editProject('${proj._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded">تعديل</button> <button onclick="deleteItem('projects', '${proj._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded">حذف</button></div></li>`; });
+            shalanProjects.forEach(proj => { 
+                const projId = proj._id || proj.id;
+                list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3"><img src="${proj.thumbnail || 'https://via.placeholder.com/150'}" class="w-16 h-12 object-cover rounded"><span>${proj.title}</span></div><div><button onclick="editProject('${projId}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded">تعديل</button> <button onclick="deleteItem('projects', '${projId}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded">حذف</button></div></li>`; 
+            });
         }
         window.editProject = function(id) {
-            const p = shalanProjects.find(x => x._id === id); editStates.project = id;
+            const p = shalanProjects.find(x => String(x._id || x.id) === String(id)); editStates.project = id;
             document.getElementById('project_title').value = p.title; document.getElementById('client_select').value = p.client_name;
             document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = (p.tags || []).includes(cb.value));
             if(p.thumbnail) { document.getElementById('project_thumb_preview').src = p.thumbnail; document.getElementById('project_thumb_preview').classList.remove('hidden'); }
             document.getElementById('project_media_type').value = p.media_type || 'image'; toggleMediaInputs('design');
             if(p.media_type === 'youtube') document.getElementById('project_youtube_url').value = p.media_content;
-            document.getElementById('projectSubmitBtn').innerText = 'تحديث'; document.getElementById('projectCancelEditBtn').classList.remove('hidden'); document.getElementById('projects').scrollIntoView({behavior: 'smooth'});
+            document.getElementById('projectSubmitBtn').innerText = 'تحديث المشروع'; document.getElementById('projectCancelEditBtn').classList.remove('hidden'); document.getElementById('projectFormTitle').innerText = 'تعديل عمل تصميم'; document.getElementById('projects').scrollIntoView({behavior: 'smooth'});
         }
         document.getElementById('addProjectForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); const btn = document.getElementById('projectSubmitBtn'); btn.innerText = 'جاري المعالجة...';
+            e.preventDefault(); const btn = document.getElementById('projectSubmitBtn'); const origTxt = btn.innerText; btn.innerText = 'جاري المعالجة...';
             const tags = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
             const thumbFile = document.getElementById('project_thumbnail').files[0]; let thumbB64 = thumbFile ? await compressImageAndGetBase64(thumbFile) : null;
             const type = document.getElementById('project_media_type').value; let content = "";
@@ -505,24 +547,28 @@
             const payload = { title: document.getElementById('project_title').value, client_name: document.getElementById('client_select').value, tags: tags, media_type: type };
             if(thumbB64) payload.thumbnail = thumbB64; if(content) payload.media_content = content;
             if(editStates.project) await api(`projects/${editStates.project}`, 'PUT', payload); else await api('projects', 'POST', payload);
-            cancelEdit('project'); loadAllData(); btn.innerText = 'رفع ونشر المشروع';
+            cancelEdit('project'); loadAllData(); btn.innerText = origTxt;
         });
 
         // --- أعمال التنفيذ ---
         function renderExecProjects() {
             const list = document.getElementById('execProjectsList'); list.innerHTML = '';
-            shalanExecProjects.forEach(proj => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3"><img src="${proj.thumbnail || 'https://via.placeholder.com/150'}" class="w-16 h-12 object-cover rounded"><div><span class="font-bold block">${proj.title}</span><span class="text-xs text-yellow-400">عدد الصور: ${proj.gallery ? proj.gallery.length : 0}</span></div></div><div><button onclick="editExecProject('${proj._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('exec_projects', '${proj._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; });
+            shalanExecProjects.forEach(proj => { 
+                const projId = proj._id || proj.id;
+                list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3"><img src="${proj.thumbnail || 'https://via.placeholder.com/150'}" class="w-16 h-12 object-cover rounded"><div><span class="font-bold block">${proj.title}</span><span class="text-xs text-yellow-400">عدد الصور: ${proj.gallery ? proj.gallery.length : 0}</span></div></div><div><button onclick="editExecProject('${projId}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('exec_projects', '${projId}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; 
+            });
         }
         window.editExecProject = function(id) {
-            const proj = shalanExecProjects.find(p => p._id === id); editStates.exec_project = id;
+            const proj = shalanExecProjects.find(p => String(p._id || p.id) === String(id)); editStates.exec_project = id;
             document.getElementById('exec_project_title').value = proj.title; document.getElementById('exec_client_select').value = proj.client_name;
             document.querySelectorAll('.exec-cat-checkbox').forEach(cb => cb.checked = (proj.tags || []).includes(cb.value));
             if(proj.thumbnail) { document.getElementById('exec_project_thumb_preview').src = proj.thumbnail; document.getElementById('exec_project_thumb_preview').classList.remove('hidden'); }
             if(proj.gallery && proj.gallery.length > 0) { const galContainer = document.getElementById('exec_gallery_preview'); galContainer.innerHTML = ''; galContainer.classList.remove('hidden'); proj.gallery.forEach(img => galContainer.innerHTML += `<img src="${img}" class="w-16 h-16 object-cover rounded border border-white/20">`); }
-            document.getElementById('execProjectSubmitBtn').innerText = 'تحديث المشروع'; document.getElementById('execProjectCancelEditBtn').classList.remove('hidden'); document.getElementById('exec_projects').scrollIntoView({behavior: 'smooth'});
+            document.getElementById('execProjectSubmitBtn').innerText = 'تحديث المشروع'; document.getElementById('execProjectCancelEditBtn').classList.remove('hidden'); document.getElementById('execProjectFormTitle').innerText = 'تعديل مشروع تنفيذ'; document.getElementById('exec_projects').scrollIntoView({behavior: 'smooth'});
         }
         document.getElementById('addExecProjectForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); const btn = document.getElementById('execProjectSubmitBtn'); const selectedCats = Array.from(document.querySelectorAll('.exec-cat-checkbox:checked')).map(cb => cb.value);
+            e.preventDefault(); const btn = document.getElementById('execProjectSubmitBtn'); const origTxt = btn.innerText;
+            const selectedCats = Array.from(document.querySelectorAll('.exec-cat-checkbox:checked')).map(cb => cb.value);
             if(selectedCats.length === 0) { alert("حدد قسم واحد على الأقل"); return; } btn.innerText = 'جاري المعالجة...';
             try {
                 const thumbFile = document.getElementById('exec_project_thumbnail').files[0]; let thumbBase64 = thumbFile ? await compressImageAndGetBase64(thumbFile) : null;
@@ -530,21 +576,21 @@
                 for(let i = 0; i < galleryFiles.length; i++) { const b64 = await compressImageAndGetBase64(galleryFiles[i]); if(b64) galleryBase64Array.push(b64); }
                 const payload = { title: document.getElementById('exec_project_title').value, client_name: document.getElementById('exec_client_select').value, tags: selectedCats };
                 if(thumbBase64) payload.thumbnail = thumbBase64;
-                if(editStates.exec_project) { const orig = shalanExecProjects.find(p => p._id === editStates.exec_project); payload.gallery = galleryBase64Array.length > 0 ? galleryBase64Array : orig.gallery; await api(`exec_projects/${editStates.exec_project}`, 'PUT', payload); } 
+                if(editStates.exec_project) { const orig = shalanExecProjects.find(p => String(p._id || p.id) === String(editStates.exec_project)); payload.gallery = galleryBase64Array.length > 0 ? galleryBase64Array : orig.gallery; await api(`exec_projects/${editStates.exec_project}`, 'PUT', payload); } 
                 else { payload.gallery = galleryBase64Array; await api('exec_projects', 'POST', payload); }
                 cancelEdit('exec_project'); loadAllData(); alert('تم الحفظ بنجاح!');
-            } catch (err) { alert('خطأ في معالجة الصور.'); } btn.innerText = 'حفظ مشروع التنفيذ';
+            } catch (err) { alert('خطأ في معالجة الصور.'); } btn.innerText = origTxt;
         });
 
         // --- العملاء ---
-        function renderClients() { const list = document.getElementById('clientsList'); list.innerHTML = ''; shalanClients.forEach(c => list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3">${c.logo ? `<img src="${c.logo}" class="w-8 h-8 rounded">`:`🏢`}<span>${c.name}</span></div><div><button onclick="editClient('${c._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded">تعديل</button> <button onclick="deleteItem('clients', '${c._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded">حذف</button></div></li>`); }
-        window.editClient = function(id) { const c = shalanClients.find(x => x._id === id); editStates.client = id; document.getElementById('client_name_input').value = c.name; document.getElementById('client_url').value = c.url; if(c.logo) { document.getElementById('client_img_preview').src = c.logo; document.getElementById('client_img_preview').classList.remove('hidden'); } document.getElementById('clientSubmitBtn').innerText = 'تحديث'; document.getElementById('clientCancelEditBtn').classList.remove('hidden'); }
+        function renderClients() { const list = document.getElementById('clientsList'); list.innerHTML = ''; shalanClients.forEach(c => { const cId = c._id || c.id; list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3">${c.logo ? `<img src="${c.logo}" class="w-8 h-8 rounded">`:`🏢`}<span>${c.name}</span></div><div><button onclick="editClient('${cId}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded">تعديل</button> <button onclick="deleteItem('clients', '${cId}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded">حذف</button></div></li>`; }); }
+        window.editClient = function(id) { const c = shalanClients.find(x => String(x._id || x.id) === String(id)); editStates.client = id; document.getElementById('client_name_input').value = c.name; document.getElementById('client_url').value = c.url; if(c.logo) { document.getElementById('client_img_preview').src = c.logo; document.getElementById('client_img_preview').classList.remove('hidden'); } document.getElementById('clientSubmitBtn').innerText = 'تحديث'; document.getElementById('clientCancelEditBtn').classList.remove('hidden'); document.getElementById('clientFormTitle').innerText = 'تعديل عميل'; }
         document.getElementById('addClientForm').addEventListener('submit', async function(e) { e.preventDefault(); const file = document.getElementById('client_logo').files[0]; const logoBase64 = file ? await compressImageAndGetBase64(file) : null; const payload = { name: document.getElementById('client_name_input').value, url: document.getElementById('client_url').value }; if(logoBase64) payload.logo = logoBase64; if(editStates.client) await api(`clients/${editStates.client}`, 'PUT', payload); else await api('clients', 'POST', payload); cancelEdit('client'); loadAllData(); });
 
         // --- الباقات ---
         window.addOptionRow = function() { const c = document.getElementById('optionsContainer'); const r = document.createElement('div'); r.className = 'flex gap-3 items-center option-row'; r.innerHTML = `<input type="text" placeholder="الخدمة" required class="flex-1 px-4 py-2 rounded-xl glass-input pkg-opt-title"><input type="number" placeholder="السعر" required class="w-24 px-4 py-2 rounded-xl glass-input pkg-opt-price"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 font-bold">&times;</button>`; c.appendChild(r); }
-        function renderPackages() { const list = document.getElementById('packagesList'); list.innerHTML = ''; shalanPackages.forEach(pkg => list.innerHTML += `<li class="bg-white/5 p-4 rounded-lg"><h4 class="font-bold">${pkg.title}</h4><div><button onclick="editPackage('${pkg._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('packages', '${pkg._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`); }
-        window.editPackage = function(id) { const p = shalanPackages.find(x => x._id === id); editStates.package = id; document.getElementById('pkg_title').value = p.title; document.getElementById('pkg_bg_color').value = p.bg_color; document.getElementById('pkg_desc').value = p.description; document.getElementById('pkg_portfolio').value = p.portfolio_link; if(p.image) { document.getElementById('pkg_img_preview').src = p.image; document.getElementById('pkg_img_preview').classList.remove('hidden'); } const c = document.getElementById('optionsContainer'); c.innerHTML = ''; p.options.forEach(opt => { const r = document.createElement('div'); r.className = 'flex gap-3 items-center option-row'; r.innerHTML = `<input type="text" value="${opt.title}" required class="flex-1 px-4 py-2 rounded-xl glass-input pkg-opt-title"><input type="number" value="${opt.price}" required class="w-24 px-4 py-2 rounded-xl glass-input pkg-opt-price"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 font-bold">&times;</button>`; c.appendChild(r); }); document.getElementById('packageSubmitBtn').innerText = 'تحديث'; document.getElementById('packageCancelEditBtn').classList.remove('hidden'); document.getElementById('packages').scrollIntoView({behavior: 'smooth'}); }
+        function renderPackages() { const list = document.getElementById('packagesList'); list.innerHTML = ''; shalanPackages.forEach(pkg => { const pkgId = pkg._id || pkg.id; list.innerHTML += `<li class="bg-white/5 p-4 rounded-lg"><h4 class="font-bold">${pkg.title}</h4><div><button onclick="editPackage('${pkgId}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('packages', '${pkgId}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; }); }
+        window.editPackage = function(id) { const p = shalanPackages.find(x => String(x._id || x.id) === String(id)); editStates.package = id; document.getElementById('pkg_title').value = p.title; document.getElementById('pkg_bg_color').value = p.bg_color; document.getElementById('pkg_desc').value = p.description; document.getElementById('pkg_portfolio').value = p.portfolio_link; if(p.image) { document.getElementById('pkg_img_preview').src = p.image; document.getElementById('pkg_img_preview').classList.remove('hidden'); } const c = document.getElementById('optionsContainer'); c.innerHTML = ''; p.options.forEach(opt => { const r = document.createElement('div'); r.className = 'flex gap-3 items-center option-row'; r.innerHTML = `<input type="text" value="${opt.title}" required class="flex-1 px-4 py-2 rounded-xl glass-input pkg-opt-title"><input type="number" value="${opt.price}" required class="w-24 px-4 py-2 rounded-xl glass-input pkg-opt-price"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 font-bold">&times;</button>`; c.appendChild(r); }); document.getElementById('packageSubmitBtn').innerText = 'تحديث الباقة'; document.getElementById('packageCancelEditBtn').classList.remove('hidden'); document.getElementById('packageFormTitle').innerText = 'تعديل الباقة'; document.getElementById('packages').scrollIntoView({behavior: 'smooth'}); }
         document.getElementById('addPackageForm').addEventListener('submit', async function(e) { e.preventDefault(); const f = document.getElementById('pkg_image').files[0]; const imgB64 = f ? await compressImageAndGetBase64(f) : null; const options = []; document.querySelectorAll('.option-row').forEach(row => { const t = row.querySelector('.pkg-opt-title').value; const p = row.querySelector('.pkg-opt-price').value; if(t&&p!=="") options.push({title: t, price: parseFloat(p)}); }); const payload = { title: document.getElementById('pkg_title').value, bg_color: document.getElementById('pkg_bg_color').value, description: document.getElementById('pkg_desc').value, portfolio_link: document.getElementById('pkg_portfolio').value, options: options }; if(imgB64) payload.image = imgB64; if(editStates.package) await api(`packages/${editStates.package}`, 'PUT', payload); else await api('packages', 'POST', payload); cancelEdit('package'); loadAllData(); });
 
         // ================= 6. عرض الطلبات من السيرفر =================
@@ -569,7 +615,7 @@
             if(confirm('هل أنت متأكد من مسح جميع الطلبات من قاعدة البيانات نهائياً؟')) {
                 const table = currentOrderView === 'services' ? 'service_orders' : 'package_orders';
                 const res = await api(table);
-                for(let order of res.data) { await api(`${table}/${order._id}`, 'DELETE'); }
+                for(let order of res.data) { await api(`${table}/${order._id || order.id}`, 'DELETE'); }
                 if(currentOrderView === 'services') renderGeneralOrders(); else renderPackageOrders();
             }
         }
