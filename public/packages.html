@@ -86,14 +86,32 @@
     </footer>
 
     <script>
-        // ================= دالة الاتصال بالسيرفر =================
+        // ================= دالة الاتصال الذكية (Hybrid API) =================
         async function api(endpoint, method = 'GET', body = null) {
             const options = { method, headers: { 'Content-Type': 'application/json' } };
             if (body) options.body = JSON.stringify(body);
             try {
                 const res = await fetch('/api/' + endpoint, options);
-                return await res.json();
-            } catch(e) { console.error(e); return {success: false, data: []}; }
+                if (res.ok) return await res.json();
+                throw new Error("Server error");
+            } catch(e) { 
+                console.warn("⚠️ السيرفر غير متصل، جاري جلب البيانات محلياً:", endpoint);
+                // تحديد مفتاح التخزين ليتوافق مع لوحة التحكم محلياً
+                let storageKey = endpoint === 'package_orders' ? 'shalan_orders' : 'shalan_' + endpoint;
+                
+                let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+                
+                // في حال كان الطلب هو إضافة (إرسال طلب باقة)
+                if (method === 'POST') {
+                    body._id = Date.now().toString(); // إنشاء ID وهمي
+                    data.push(body);
+                    localStorage.setItem(storageKey, JSON.stringify(data));
+                    return { success: true, data: body };
+                }
+                
+                // في حال القراءة (GET)
+                return { success: true, data: data };
+            }
         }
 
         let activePackageIdForOrder = null;
@@ -112,7 +130,7 @@
             container.innerHTML = ''; 
             
             packages.forEach(pkg => {
-                const pkgId = pkg._id || pkg.id; // التوافق مع MongoDB
+                const pkgId = pkg._id || pkg.id; // التوافق مع السيرفر أو المحلي
                 const glowColor = pkg.bg_color || '#ec4899'; 
                 let optionsHTML = '';
                 
@@ -164,7 +182,7 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
-            // جلب الباقات من السيرفر
+            // جلب الباقات (هجين: من السيرفر أو المتصفح)
             const res = await api('packages');
             if(res.success && res.data) {
                 renderPackagesData(res.data);
@@ -225,7 +243,7 @@
             });
             const total = document.getElementById(`total-${activePackageIdForOrder}`).innerText;
 
-            // 1. إرسال الطلب إلى السيرفر (قاعدة البيانات)
+            // 1. إرسال الطلب إلى السيرفر / الذاكرة المحلية
             const newOrder = {
                 date: new Date().toLocaleDateString('ar-EG'),
                 customer: customerName,
