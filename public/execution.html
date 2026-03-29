@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أعمال التنفيذ | شعلان للدعاية والإعلان</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0a0514;
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; 
+        }
+        
+        .glossy-nav {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- إعدادات السلايدر الرئيسي --- */
+        .exec-projects-slider {
+            position: absolute;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+        .exec-projects-slider .swiper-slide {
+            width: 100%;
+            height: 100%;
+            /* تحسين الأداء عند تحريك الصور */
+            transform: translateZ(0); 
+            will-change: transform, opacity;
+        }
+        .exec-projects-slider img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            will-change: transform;
+        }
+        .gradient-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, #0a0514 0%, rgba(10, 5, 20, 0.8) 20%, transparent 65%);
+            z-index: 10;
+            pointer-events: none; 
+        }
+
+        /* --- واجهة التحكم السفلية --- */
+        .bottom-ui {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            padding: 2rem 4rem; 
+            pointer-events: none; 
+        }
+        .bottom-ui-content {
+            pointer-events: auto; 
+        }
+
+        .exec-categories-slider {
+            width: 100%;
+            padding-bottom: 10px;
+        }
+        .exec-categories-slider .swiper-slide {
+            width: auto; 
+            margin-left: 20px; 
+        }
+        
+        .cat-btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #d1d5db; 
+            height: 75px; 
+            min-width: 160px; 
+            padding: 0 40px; 
+            border-radius: 16px; 
+            font-weight: 800; 
+            font-size: 1.3rem; 
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            will-change: transform, background-color;
+        }
+        .cat-btn:hover, .cat-btn.active {
+            background: linear-gradient(to right, #db2777, #9333ea);
+            color: white;
+            border-color: transparent;
+            transform: scale(1.05); 
+            box-shadow: 0 15px 30px rgba(219, 39, 119, 0.4);
+        }
+
+        .shuffle-btn {
+            width: 100px; 
+            height: 75px; 
+            background: linear-gradient(135deg, rgba(253, 251, 251, 0.95) 0%, rgba(230, 220, 230, 0.95) 100%);
+            color: #2d1b4d; 
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            will-change: transform;
+        }
+        .shuffle-btn svg { width: 2rem; height: 2rem; }
+        .shuffle-btn:hover, .shuffle-btn.active {
+            background: linear-gradient(to right, #db2777, #9333ea);
+            color: white;
+            border-color: transparent;
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(219, 39, 119, 0.4);
+        }
+
+        .proj-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 70px;
+            height: 70px;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 30;
+            transition: 0.3s;
+            color: white;
+            pointer-events: auto;
+            will-change: transform;
+        }
+        .proj-nav-btn:hover {
+            background: #ec4899;
+            border-color: #ec4899;
+            transform: translateY(-50%) scale(1.1);
+        }
+        .proj-nav-next { left: 40px; }
+        .proj-nav-prev { right: 40px; }
+
+        /* نافذة استعراض الصور المتعددة */
+        #galleryModal {
+            backdrop-filter: blur(20px);
+            transition: opacity 0.3s;
+        }
+        .gallery-main-img {
+            max-height: 80vh;
+            max-width: 90vw;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="fixed top-6 inset-x-0 z-50 px-4">
+        <nav class="max-w-7xl mx-auto glossy-nav rounded-full px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-white shadow-lg">ش</div>
+                <a href="index.html" class="font-extrabold text-xl tracking-wider hover:text-pink-400 transition-colors">شعلان</a>
+            </div>
+            <ul class="hidden lg:flex items-center gap-2 text-sm font-semibold">
+                <li><a href="index.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">الرئيسية</a></li>
+                <li><a href="design.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">التصميم</a></li>
+                <li><a href="execution.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300 bg-white/10">التنفيذ</a></li>
+                <li><a href="packages.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">الباقات</a></li>
+                <li><a href="about.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">من نحن</a></li>
+                
+                <li><a href="index.html#order-section" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 px-6 py-2.5 rounded-full transition-all border border-pink-400/50 shadow-lg shadow-pink-500/30 inline-block">اطلب الخدمة</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="swiper exec-projects-slider">
+        <div class="swiper-wrapper" id="projectsWrapper"></div>
+        <div class="gradient-overlay"></div>
+    </div>
+
+    <div class="proj-nav-btn proj-nav-next"><svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></div>
+    <div class="proj-nav-btn proj-nav-prev"><svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>
+
+    <div class="bottom-ui">
+        <div class="bottom-ui-content max-w-7xl mx-auto">
+            <div class="mb-8 max-w-2xl">
+                <h2 id="displayTitle" class="text-5xl md:text-6xl font-black text-white mb-3 drop-shadow-2xl">اسم المشروع</h2>
+                <p id="displayClient" class="text-pink-400 font-bold text-xl mb-3 drop-shadow-md">العميل: اسم العميل</p>
+                <p id="displayDesc" class="text-gray-200 text-lg leading-relaxed drop-shadow-lg font-semibold max-w-3xl">اختر قسماً لعرض وصفه هنا. انقر على أي مكان في الشاشة لاستعراض صور المشروع بالكامل.</p>
+            </div>
+
+            <div class="swiper exec-categories-slider">
+                <div class="swiper-wrapper" id="categoriesWrapper">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="galleryModal" class="fixed inset-0 z-[100] hidden bg-black/95 opacity-0 flex flex-col justify-center items-center">
+        <button onclick="closeGallery()" class="absolute top-6 left-6 bg-white/10 hover:bg-pink-600 text-white rounded-full w-14 h-14 flex items-center justify-center text-4xl transition-all z-50 hover:scale-110">&times;</button>
+        
+        <div class="swiper gallery-swiper w-full h-full flex items-center justify-center">
+            <div class="swiper-wrapper" id="galleryWrapper"></div>
+            <div class="swiper-button-next !text-pink-500"></div>
+            <div class="swiper-button-prev !text-pink-500"></div>
+            <div class="swiper-pagination !bottom-5"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        // ================= دالة الاتصال بالسيرفر =================
+        async function api(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            try {
+                const res = await fetch('/api/' + endpoint, options);
+                return await res.json();
+            } catch(e) { console.error(e); return {success: false, data: []}; }
+        }
+
+        // ================= 1. المتغيرات والبيانات =================
+        let execCategories = [];
+        let execProjects = [];
+        let currentFilteredProjects = [];
+        let projectsSwiper;
+        let gallerySwiper;
+
+        const defaultExecCats = [
+            { id: 1, name: "لوحات مضيئة", tag: "لوحات_مضيئة", desc: "تصنيع وتركيب لوحات إعلانية مضيئة بأحدث تقنيات الإضاءة الموفرة للطاقة وتصاميم تلفت الانتباه ليلاً ونهاراً." },
+            { id: 2, name: "كلادينج", tag: "كلادينج", desc: "تكسية واجهات المحلات والمباني بألواح الكلادينج المقاومة للعوامل الجوية بألوان عصرية وتشكيلات هندسية دقيقة." },
+            { id: 3, name: "طباعة وتغليف", tag: "طباعة", desc: "طباعة رقمية عالية الدقة للملصقات، البنرات، وتغليف واجهات الزجاج والسيارات بخامات تدوم طويلاً." }
+        ];
+
+        const mockExecProjects = [
+            { id: 101, title: "واجهة كلادينج صيدلية الشفاء", client_name: "صيدلية الشفاء", tags: ["كلادينج"], thumbnail: "https://images.unsplash.com/photo-1541888040003-870020bc49d0?q=80&w=1200", gallery: ["https://images.unsplash.com/photo-1541888040003-870020bc49d0?q=80&w=1200"] },
+            { id: 102, title: "لوحة مطعم المشويات 3D", client_name: "مطعم المشويات", tags: ["لوحات_مضيئة"], thumbnail: "https://images.unsplash.com/photo-1563298723-dcfebaa392e3?q=80&w=1200", gallery: ["https://images.unsplash.com/photo-1563298723-dcfebaa392e3?q=80&w=1200"] },
+            { id: 103, title: "تغليف سيارات شركة التوصيل", client_name: "سريع للتوصيل", tags: ["طباعة"], thumbnail: "https://images.unsplash.com/photo-1562141961-b5d189ca8e9e?q=80&w=1200", gallery: ["https://images.unsplash.com/photo-1562141961-b5d189ca8e9e?q=80&w=1200"] }
+        ];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // جلب البيانات من السيرفر
+            const catRes = await api('exec_categories');
+            const projRes = await api('exec_projects');
+
+            execCategories = (catRes.data && catRes.data.length > 0) ? catRes.data : defaultExecCats;
+            execProjects = (projRes.data && projRes.data.length > 0) ? projRes.data : mockExecProjects;
+
+            currentFilteredProjects = [...execProjects];
+
+            // ================= 2. بناء الأقسام =================
+            const catsWrapper = document.getElementById('categoriesWrapper');
+            let categoriesHTML = `
+                <div class="swiper-slide" style="width: auto;">
+                    <button onclick="shuffleProjects()" class="shuffle-btn active" id="btn-shuffle" title="عرض عشوائي للكل">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h3.879c.53 0 1.039.21 1.414.586l4.414 4.414A2 2 0 0015.121 16H20m0 0l-3-3m3 3l-3 3M4 16h3.879c.53 0 1.039-.21 1.414-.586l4.414-4.414A2 2 0 0115.121 8H20m0 0l-3-3m3 3l-3 3" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            execCategories.forEach(cat => {
+                categoriesHTML += `
+                    <div class="swiper-slide" style="width: auto;">
+                        <button onclick="filterByCategory('${cat.tag}', '${cat.desc}', this)" class="cat-btn cat-filter-btn">
+                            ${cat.name}
+                        </button>
+                    </div>
+                `;
+            });
+            
+            catsWrapper.innerHTML = categoriesHTML;
+
+            new Swiper('.exec-categories-slider', {
+                slidesPerView: 'auto',
+                freeMode: true,
+                mousewheel: true,
+            });
+
+            // التشغيل
+            shuffleProjects();
+        });
+
+        // ================= 3. بناء سلايدر المشاريع والوظائف العامة =================
+
+        window.initProjectsSwiper = function(projectsToRender) {
+            const wrapper = document.getElementById('projectsWrapper');
+            
+            if (projectsToRender.length === 0) {
+                wrapper.innerHTML = `
+                    <div class="swiper-slide flex flex-col items-center justify-center bg-gray-900">
+                        <h2 class="text-4xl font-bold text-gray-600 mb-2">لا توجد أعمال في هذا القسم</h2>
+                        <p class="text-gray-500">جرب اختيار قسم آخر.</p>
+                    </div>`;
+                updateProjectText(null);
+            } else {
+                let projectsHTML = '';
+                projectsToRender.forEach(proj => {
+                    // استخدام المعرف الخاص بالسيرفر (_id) أو المحلي (id)
+                    const projId = proj._id || proj.id;
+                    projectsHTML += `
+                        <div class="swiper-slide cursor-pointer" onclick="openGallery('${projId}')">
+                            <img src="${proj.thumbnail || 'https://via.placeholder.com/1200x800'}" alt="${proj.title}">
+                        </div>
+                    `;
+                });
+                wrapper.innerHTML = projectsHTML; 
+            }
+
+            if (projectsSwiper) projectsSwiper.destroy(true, true);
+
+            projectsSwiper = new Swiper('.exec-projects-slider', {
+                effect: 'fade', 
+                fadeEffect: { crossFade: true },
+                loop: projectsToRender.length > 1, 
+                speed: 600,
+                navigation: { nextEl: '.proj-nav-next', prevEl: '.proj-nav-prev' },
+                on: {
+                    slideChange: function () {
+                        if(projectsToRender.length > 0) {
+                            updateProjectText(projectsToRender[this.realIndex]);
+                        }
+                    }
+                }
+            });
+
+            if(projectsToRender.length > 0) updateProjectText(projectsToRender[0]);
+        };
+
+        window.updateProjectText = function(project) {
+            if(project) {
+                document.getElementById('displayTitle').innerText = project.title;
+                document.getElementById('displayClient').innerText = project.client_name ? `العميل: ${project.client_name}` : '';
+            } else {
+                document.getElementById('displayTitle').innerText = '';
+                document.getElementById('displayClient').innerText = '';
+            }
+        };
+
+        window.shuffleProjects = function() {
+            document.querySelectorAll('.cat-btn, .shuffle-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-shuffle').classList.add('active');
+            document.getElementById('displayDesc').innerText = "استعرض أعمالنا المتنوعة في التنفيذ والتصنيع بجودة ودقة عالية. انقر على أي مكان في الشاشة لاستعراض صور المشروع بالكامل.";
+
+            currentFilteredProjects = [...execProjects].sort(() => 0.5 - Math.random());
+            initProjectsSwiper(currentFilteredProjects);
+        };
+
+        window.filterByCategory = function(tag, desc, btnElement) {
+            document.querySelectorAll('.cat-btn, .shuffle-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+            document.getElementById('displayDesc').innerText = desc || "تصفح مشاريعنا في هذا القسم.";
+
+            currentFilteredProjects = execProjects.filter(p => p.tags && p.tags.includes(tag));
+            initProjectsSwiper(currentFilteredProjects);
+        };
+
+        // ================= 4. نظام استعراض الصور المتعددة =================
+        const modal = document.getElementById('galleryModal');
+
+        window.openGallery = function(projectId) {
+            const project = execProjects.find(p => String(p._id || p.id) === String(projectId));
+            if (!project) return;
+
+            const galleryWrapper = document.getElementById('galleryWrapper');
+            
+            let galleryHTML = '';
+            if (project.gallery && project.gallery.length > 0) {
+                project.gallery.forEach(img => {
+                    galleryHTML += `<div class="swiper-slide flex justify-center items-center h-full"><img src="${img}" class="gallery-main-img"></div>`;
+                });
+            } else {
+                galleryHTML = `<div class="swiper-slide flex justify-center items-center h-full"><img src="${project.thumbnail || 'https://via.placeholder.com/1200x800'}" class="gallery-main-img"></div>`;
+            }
+            galleryWrapper.innerHTML = galleryHTML;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+
+            if (gallerySwiper) gallerySwiper.destroy(true, true);
+            gallerySwiper = new Swiper('.gallery-swiper', {
+                loop: project.gallery && project.gallery.length > 1,
+                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+                pagination: { el: '.swiper-pagination', clickable: true }
+            });
+        };
+
+        window.closeGallery = function() {
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        document.getElementById('galleryModal').addEventListener('click', (e) => {
+            if (e.target.id === 'galleryModal') closeGallery();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeGallery();
+        });
+    </script>
+</body>
+</html>

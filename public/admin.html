@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم | وكالة شعلان</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        @media (max-width: 1024px) {
+            #sidebar { transform: translateX(100%); }
+            #sidebar.open { transform: translateX(0); }
+            .main-content { margin-right: 0 !important; }
+        }
+        body { font-family: 'Cairo', sans-serif; background: #0a0514; color: white; min-height: 100vh; overflow-x: hidden; }
+        
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
+        .glass-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s; }
+        .glass-input:focus { border-color: #ec4899; background: rgba(255, 255, 255, 0.1); outline: none; }
+        .glass-input option { background: #0a0514; color: white; }
+
+        .tab-content { display: none; opacity: 0; transition: opacity 0.4s ease; }
+        .tab-content.active { display: block; opacity: 1; }
+        .tab-btn.active { background: linear-gradient(to right, #db2777, #9333ea); border-color: transparent; }
+        .custom-cb { width: 1.2rem; height: 1.2rem; accent-color: #ec4899; cursor: pointer; }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="fixed top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent -z-10"></div>
+
+    <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0514]/95 backdrop-blur-xl">
+        <form id="loginForm" class="glass-panel p-10 w-full max-w-md text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 to-purple-600"></div>
+            <div class="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-4xl text-white mx-auto shadow-lg shadow-pink-500/50 mb-6">ش</div>
+            <h2 class="text-2xl font-extrabold mb-2">تسجيل الدخول</h2>
+            <p class="text-gray-400 text-sm mb-8">الرجاء إدخال كلمة المرور للوصول إلى لوحة التحكم.</p>
+            
+            <div class="mb-6 text-right">
+                <input type="password" id="admin_password" required placeholder="كلمة المرور..." class="w-full px-4 py-3 rounded-xl glass-input text-center tracking-[0.3em] font-bold" dir="ltr">
+            </div>
+            
+            <button type="submit" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 rounded-xl shadow-lg hover:scale-[1.02] transition-transform">
+                دخول للوحة التحكم
+            </button>
+            <div id="loginError" class="text-red-400 text-sm mt-4 hidden font-bold">كلمة المرور غير صحيحة!</div>
+        </form>
+    </div>
+
+    <div id="appLayout" class="hidden w-full min-h-screen">
+        <button onclick="toggleSidebar()" class="lg:hidden fixed top-5 right-5 z-50 p-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl shadow-lg text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+
+        <aside id="sidebar" class="w-72 h-screen glass-panel rounded-none border-l border-white/10 flex flex-col fixed right-0 top-0 z-40 bg-[#0a0514]/95">
+            <div class="p-6 text-center border-b border-white/5 relative">
+                <button onclick="toggleSidebar()" class="lg:hidden absolute top-4 left-4 text-gray-400 hover:text-white">✕</button>
+                <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-xl text-white mx-auto shadow-lg shadow-pink-500/50 mb-2">ش</div>
+                <h2 class="text-lg font-extrabold tracking-wider">لوحة القيادة</h2>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto text-sm custom-scroll">
+                <button onclick="switchTab('settings')" class="tab-btn active w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">⚙️</span> <span>إعدادات الواجهة</span>
+                </button>
+                
+                <div class="pt-4 pb-1 text-xs text-pink-500 font-bold">عالم التصميم</div>
+                <button onclick="switchTab('categories')" class="tab-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">🗂️</span> <span>أقسام التصميم</span>
+                </button>
+                <button onclick="switchTab('projects')" class="tab-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">🎨</span> <span>أعمال التصميم</span>
+                </button>
+
+                <div class="pt-4 pb-1 text-xs text-yellow-500 font-bold">عالم التنفيذ</div>
+                <button onclick="switchTab('exec_categories')" class="tab-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">🏷️</span> <span>أقسام التنفيذ</span>
+                </button>
+                <button onclick="switchTab('exec_projects')" class="tab-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">🛠️</span> <span>أعمال التنفيذ</span>
+                </button>
+
+                <div class="pt-4 pb-1 text-xs text-blue-500 font-bold">الإدارة العامة</div>
+                <button onclick="switchTab('clients')" class="tab-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">👥</span> <span>إدارة العملاء</span>
+                </button>
+                <button onclick="switchTab('packages')" class="tab-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">📦</span> <span>إدارة الباقات</span>
+                </button>
+                <button onclick="switchTab('orders')" class="tab-btn w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition text-right">
+                    <span class="text-lg">📩</span> <span>الطلبات الواردة</span>
+                </button>
+                
+                <div class="pt-6 mt-4 border-t border-white/10">
+                    <button onclick="logoutAdmin()" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition text-right">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        <span>تسجيل الخروج</span>
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="main-content flex-1 min-h-screen p-6 lg:p-10 lg:mr-72 relative">
+            <div id="settings" class="tab-content active max-w-4xl mx-auto pt-10 lg:pt-0">
+                <h1 class="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-l from-pink-400 to-purple-400">إعدادات النظام</h1>
+                <div class="glass-panel p-8 space-y-8">
+                    <div>
+                        <h3 class="text-lg font-bold border-r-4 border-pink-500 pr-3 mb-4">القسم الأول (الترحيب)</h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div><label class="block text-sm text-gray-400 mb-2">العنوان الرئيسي</label><input type="text" id="hero_title" class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div><label class="block text-sm text-gray-400 mb-2">الوصف</label><textarea id="hero_desc" rows="3" class="w-full px-4 py-3 rounded-xl glass-input"></textarea></div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-white/10 pt-8 mt-8">
+                        <h3 class="text-lg font-bold border-r-4 border-yellow-500 pr-3 mb-4">النسخ الاحتياطي (استيراد وتصدير JSON كامل)</h3>
+                        <p class="text-gray-400 text-sm mb-6 leading-relaxed">يُستخدم هذا القسم لنقل الموقع كاملاً (بما في ذلك الصور) بين الأجهزة عبر قاعدة البيانات.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button type="button" onclick="exportData()" class="w-full bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 transition flex items-center justify-center gap-2">تنزيل نسخة احتياطية</button>
+                            <div class="relative w-full">
+                                <input type="file" id="importFile" accept=".json" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="importData(event)">
+                                <button type="button" class="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">رفع واستيراد بيانات</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="categories" class="tab-content max-w-4xl mx-auto pt-10 lg:pt-0">
+                <h1 class="text-3xl font-bold mb-8 text-pink-400">إدارة أقسام التصميم</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <form id="addCategoryForm" class="glass-panel p-6 space-y-4 h-fit mb-6">
+                            <h3 id="catFormTitle" class="text-lg font-bold mb-4 border-b border-white/10 pb-2">إضافة قسم تصميم جديد</h3>
+                            <div><label class="block text-sm text-gray-400 mb-2">اسم القسم</label><input type="text" id="cat_name" required class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div><label class="block text-sm text-gray-400 mb-2">الاسم البرمجي (بدون مسافات)</label><input type="text" id="cat_tag" required class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">صورة العرض (تصل لـ 10 ميجا)</label>
+                                <input type="file" id="cat_img" accept="image/*" class="w-full px-4 py-2 rounded-xl glass-input file:bg-pink-600 file:text-white file:border-0 file:rounded-full file:px-4 file:py-1">
+                                <img id="cat_img_preview" class="mt-2 w-full h-32 object-cover rounded-xl hidden">
+                            </div>
+                            <button type="submit" id="catSubmitBtn" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 rounded-xl">حفظ القسم</button>
+                            <button type="button" id="catCancelEditBtn" onclick="cancelEdit('category')" class="hidden w-full bg-gray-600 text-white font-bold py-2 rounded-xl mt-2">إلغاء التعديل</button>
+                        </form>
+
+                        <div class="glass-panel p-6 bg-green-900/10 border-green-500/30">
+                            <h4 class="font-bold text-green-400 mb-2">استيراد أقسام التصميم من إكسل (CSV)</h4>
+                            <p class="text-xs text-gray-400 mb-4">الترتيب: 1.اسم القسم 2.الاسم البرمجي</p>
+                            <div class="relative w-full">
+                                <input type="file" accept=".csv" onchange="importCategoriesCSV(event, 'categories')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <button type="button" class="w-full bg-green-600/20 text-green-400 border border-green-500/50 px-4 py-2 rounded-lg text-sm font-bold transition">اختيار ورفع ملف CSV</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6">
+                        <h3 class="text-lg font-bold mb-4 border-b border-white/10 pb-2">الأقسام الحالية</h3>
+                        <ul id="categoriesList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="projects" class="tab-content max-w-6xl mx-auto pt-10 lg:pt-0">
+                <h1 class="text-3xl font-bold mb-8 text-pink-400">إدارة أعمال التصميم</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <form id="addProjectForm" class="glass-panel p-6 space-y-4 h-fit">
+                        <h3 id="projectFormTitle" class="text-lg font-bold mb-4 border-b border-white/10 pb-2">إضافة عمل تصميم</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div><label class="block text-sm text-gray-400 mb-2">اسم المشروع</label><input type="text" id="project_title" required class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div><label class="block text-sm text-gray-400 mb-2">العميل</label><select id="client_select" class="w-full px-4 py-3 rounded-xl glass-input cursor-pointer"></select></div>
+                        </div>
+                        <div><label class="block text-sm text-gray-400 mb-3">الأقسام المحددة للعمل:</label><div id="dynamicCategoriesCheckboxes" class="glass-input p-4 rounded-xl flex flex-wrap gap-4"></div></div>
+                        <div class="border-t border-white/10 pt-4 mt-4">
+                            <label class="block text-sm font-bold text-pink-400 mb-2">1. صورة الغلاف (Thumbnail)</label>
+                            <input type="file" id="project_thumbnail" accept="image/*" class="w-full px-4 py-2 rounded-xl glass-input file:bg-pink-600 file:text-white file:border-0 file:rounded-full file:px-4 file:py-1">
+                            <img id="project_thumb_preview" class="mt-2 w-full h-32 object-cover rounded-xl hidden">
+                        </div>
+                        <div class="border-t border-white/10 pt-4 mt-4">
+                            <label class="block text-sm font-bold text-blue-400 mb-2">2. محتوى المشروع (عند النقر)</label>
+                            <select id="project_media_type" class="w-full px-4 py-3 rounded-xl glass-input mb-3" onchange="toggleMediaInputs('design')">
+                                <option value="image">صورة عالية الدقة (تصل لـ 10 ميجا)</option>
+                                <option value="youtube">رابط يوتيوب (للفيديوهات)</option>
+                            </select>
+                            <div id="media_upload_wrapper"><input type="file" id="project_media_file" accept="image/*" class="w-full px-4 py-2 rounded-xl glass-input file:bg-blue-600 file:text-white file:border-0 file:rounded-full file:px-4 file:py-1"></div>
+                            <div id="media_youtube_wrapper" class="hidden"><input type="url" id="project_youtube_url" placeholder="رابط اليوتيوب..." class="w-full px-4 py-3 rounded-xl glass-input" dir="ltr"></div>
+                        </div>
+                        <button type="submit" id="projectSubmitBtn" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold py-3 rounded-xl mt-4">رفع ونشر المشروع</button>
+                        <button type="button" id="projectCancelEditBtn" onclick="cancelEdit('project')" class="hidden w-full bg-gray-600 text-white font-bold py-2 rounded-xl mt-2">إلغاء التعديل</button>
+                    </form>
+                    <div class="glass-panel p-6">
+                        <h3 class="text-lg font-bold mb-4 border-b border-white/10 pb-2">المشاريع المنشورة</h3>
+                        <ul id="projectsList" class="space-y-3 max-h-[600px] overflow-y-auto pr-2"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="exec_categories" class="tab-content max-w-4xl mx-auto pt-10 lg:pt-0">
+                <h1 class="text-3xl font-bold mb-8 text-yellow-400">إدارة أقسام التنفيذ</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <form id="addExecCategoryForm" class="glass-panel p-6 space-y-4 h-fit mb-6">
+                            <h3 id="execCatFormTitle" class="text-lg font-bold mb-4 border-b border-white/10 pb-2">إضافة قسم تنفيذ</h3>
+                            <div><label class="block text-sm text-gray-400 mb-2">اسم القسم</label><input type="text" id="exec_cat_name" required class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div><label class="block text-sm text-gray-400 mb-2">الاسم البرمجي (بدون مسافات)</label><input type="text" id="exec_cat_tag" required class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div><label class="block text-sm text-gray-400 mb-2">وصف القسم (يظهر في الواجهة)</label><textarea id="exec_cat_desc" rows="3" required class="w-full px-4 py-3 rounded-xl glass-input"></textarea></div>
+                            <button type="submit" id="execCatSubmitBtn" class="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold py-3 rounded-xl">حفظ قسم التنفيذ</button>
+                            <button type="button" id="execCatCancelEditBtn" onclick="cancelEdit('exec_category')" class="hidden w-full bg-gray-600 text-white font-bold py-2 rounded-xl mt-2">إلغاء التعديل</button>
+                        </form>
+
+                        <div class="glass-panel p-6 bg-green-900/10 border-green-500/30">
+                            <h4 class="font-bold text-green-400 mb-2">استيراد أقسام التنفيذ من إكسل (CSV)</h4>
+                            <p class="text-xs text-gray-400 mb-4">الترتيب: 1.اسم القسم 2.الاسم البرمجي 3.الوصف</p>
+                            <div class="relative w-full">
+                                <input type="file" accept=".csv" onchange="importCategoriesCSV(event, 'exec_categories')" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <button type="button" class="w-full bg-green-600/20 text-green-400 border border-green-500/50 px-4 py-2 rounded-lg text-sm font-bold transition">اختيار ورفع ملف CSV</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6">
+                        <h3 class="text-lg font-bold mb-4 border-b border-white/10 pb-2">أقسام التنفيذ الحالية</h3>
+                        <ul id="execCategoriesList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="exec_projects" class="tab-content max-w-6xl mx-auto pt-10 lg:pt-0">
+                <h1 class="text-3xl font-bold mb-8 text-yellow-400">إدارة أعمال التنفيذ</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <form id="addExecProjectForm" class="glass-panel p-6 space-y-4 h-fit">
+                        <h3 id="execProjectFormTitle" class="text-lg font-bold mb-4 border-b border-white/10 pb-2">إضافة مشروع تنفيذ</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div><label class="block text-sm text-gray-400 mb-2">اسم المشروع</label><input type="text" id="exec_project_title" required class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div><label class="block text-sm text-gray-400 mb-2">اسم العميل</label><select id="exec_client_select" class="w-full px-4 py-3 rounded-xl glass-input cursor-pointer"></select></div>
+                        </div>
+                        <div><label class="block text-sm text-gray-400 mb-3">الأقسام المحددة (تنفيذ):</label><div id="execCategoriesCheckboxes" class="glass-input p-4 rounded-xl flex flex-wrap gap-4"></div></div>
+                        
+                        <div class="border-t border-white/10 pt-4 mt-4">
+                            <label class="block text-sm font-bold text-yellow-400 mb-2">1. صورة الغلاف (Thumbnail)</label>
+                            <input type="file" id="exec_project_thumbnail" accept="image/*" class="w-full px-4 py-2 rounded-xl glass-input file:bg-yellow-600 file:text-white file:border-0 file:rounded-full file:px-4 file:py-1">
+                            <img id="exec_project_thumb_preview" class="mt-2 w-full h-32 object-cover rounded-xl hidden">
+                        </div>
+                        
+                        <div class="border-t border-white/10 pt-4 mt-4">
+                            <label class="block text-sm font-bold text-orange-400 mb-2">2. صور المعرض المتعددة (Gallery)</label>
+                            <p class="text-xs text-gray-400 mb-2">حدد عدة صور في نفس الوقت. الكود سيقوم بضغطها تلقائياً.</p>
+                            <input type="file" id="exec_project_gallery" accept="image/*" multiple class="w-full px-4 py-2 rounded-xl glass-input file:bg-orange-600 file:text-white file:border-0 file:rounded-full file:px-4 file:py-1">
+                            <div id="exec_gallery_preview" class="flex gap-2 mt-2 overflow-x-auto hidden py-2"></div>
+                        </div>
+
+                        <button type="submit" id="execProjectSubmitBtn" class="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold py-3 rounded-xl mt-4">حفظ مشروع التنفيذ</button>
+                        <button type="button" id="execProjectCancelEditBtn" onclick="cancelEdit('exec_project')" class="hidden w-full bg-gray-600 text-white font-bold py-2 rounded-xl mt-2">إلغاء التعديل</button>
+                    </form>
+                    <div class="glass-panel p-6">
+                        <h3 class="text-lg font-bold mb-4 border-b border-white/10 pb-2">مشاريع التنفيذ المنشورة</h3>
+                        <ul id="execProjectsList" class="space-y-3 max-h-[600px] overflow-y-auto pr-2"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="clients" class="tab-content max-w-4xl mx-auto pt-10 lg:pt-0">
+                <h1 class="text-3xl font-bold mb-8 text-blue-400">إدارة سجل العملاء</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <form id="addClientForm" class="glass-panel p-6 space-y-4 h-fit">
+                        <h3 id="clientFormTitle" class="text-lg font-bold border-b border-white/10 pb-2">إضافة عميل</h3>
+                        <div><label class="block text-sm text-gray-400 mb-2">اسم العميل</label><input type="text" id="client_name_input" required class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                        <div><label class="block text-sm text-gray-400 mb-2">الرابط</label><input type="url" id="client_url" class="w-full px-4 py-3 rounded-xl glass-input" dir="ltr"></div>
+                        <div><label class="block text-sm text-gray-400 mb-2">الشعار</label><input type="file" id="client_logo" accept="image/*" class="w-full px-4 py-2 rounded-xl glass-input file:bg-blue-600"><img id="client_img_preview" class="mt-2 w-20 h-20 object-contain hidden"></div>
+                        <button type="submit" id="clientSubmitBtn" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold py-3 rounded-xl">حفظ العميل</button>
+                        <button type="button" id="clientCancelEditBtn" onclick="cancelEdit('client')" class="hidden w-full bg-gray-600 py-2 rounded-xl mt-2">إلغاء التعديل</button>
+                    </form>
+                    <div class="glass-panel p-6"><ul id="clientsList" class="space-y-3"></ul></div>
+                </div>
+            </div>
+
+            <div id="packages" class="tab-content max-w-6xl mx-auto pt-10 lg:pt-0">
+                <h1 class="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-l from-green-400 to-emerald-400">إدارة الباقات</h1>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <form id="addPackageForm" class="glass-panel p-6 space-y-6 h-fit">
+                        <h3 id="packageFormTitle" class="text-lg font-bold border-b border-white/10 pb-2">إضافة باقة</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><input type="text" id="pkg_title" required placeholder="العنوان" class="w-full px-4 py-3 rounded-xl glass-input"></div>
+                            <div><input type="color" id="pkg_bg_color" value="#ec4899" class="w-full h-full p-1 rounded-xl glass-input cursor-pointer"></div>
+                        </div>
+                        <div><input type="file" id="pkg_image" accept="image/*" class="w-full px-4 py-2 rounded-xl glass-input"><img id="pkg_img_preview" class="mt-2 h-32 object-cover rounded-xl hidden"></div>
+                        <div><textarea id="pkg_desc" rows="2" required placeholder="الوصف" class="w-full px-4 py-3 rounded-xl glass-input"></textarea></div>
+                        <div><input type="text" id="pkg_portfolio" required placeholder="رابط المعرض" class="w-full px-4 py-3 rounded-xl glass-input" dir="ltr"></div>
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-bold text-emerald-400">الخدمات الإضافية</h3>
+                                <button type="button" onclick="addOptionRow()" class="bg-emerald-600 px-3 py-1 rounded-lg text-xs">+ خدمة</button>
+                            </div>
+                            <div id="optionsContainer" class="space-y-2"></div>
+                        </div>
+                        <button type="submit" id="packageSubmitBtn" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 font-bold py-3 rounded-xl">حفظ الباقة</button>
+                        <button type="button" id="packageCancelEditBtn" onclick="cancelEdit('package')" class="hidden w-full bg-gray-600 py-2 rounded-xl mt-2">إلغاء التعديل</button>
+                    </form>
+                    <div class="glass-panel p-6"><ul id="packagesList" class="space-y-4"></ul></div>
+                </div>
+            </div>
+
+            <div id="orders" class="tab-content max-w-6xl mx-auto pt-10 lg:pt-0">
+                <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
+                    <h1 class="text-3xl font-bold text-green-400">سجل الطلبات الواردة</h1>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="renderGeneralOrders()" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-xl hover:bg-blue-600/40 transition text-sm">طلبات الخدمات</button>
+                        <button onclick="renderPackageOrders()" class="bg-pink-600/20 text-pink-400 border border-pink-500/30 px-4 py-2 rounded-xl hover:bg-pink-600/40 transition text-sm">طلبات الباقات</button>
+                        <button onclick="clearCurrentOrders()" class="bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 rounded-xl hover:bg-red-500/40 transition text-sm">مسح السجل المعروض</button>
+                    </div>
+                </div>
+                <h2 id="currentOrderTableTitle" class="text-xl font-bold mb-4 text-white">يتم عرض: طلبات الخدمات العامة</h2>
+                <div class="glass-panel overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse">
+                            <thead id="ordersTableHeader" class="bg-white/5 border-b border-white/10 text-gray-400 text-sm"></thead>
+                            <tbody id="ordersTableBody" class="divide-y divide-white/5"></tbody>
+                        </table>
+                    </div>
+                    <div id="noOrdersMsg" class="hidden p-8 text-center text-gray-500">لا توجد طلبات مسجلة حالياً في هذا القسم.</div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // ================= نظام تسجيل الدخول المبسط =================
+        const SECRET_PASS = "c2hhbGFuMjAyNg=="; 
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault(); const input = document.getElementById('admin_password').value;
+            if (btoa(input) === SECRET_PASS) {
+                sessionStorage.setItem('shalan_admin_auth', 'true'); document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('appLayout').classList.remove('hidden'); document.getElementById('appLayout').classList.add('flex');
+                loadAllData(); // تحميل البيانات بعد تسجيل الدخول
+            } else { document.getElementById('loginError').classList.remove('hidden'); }
+        });
+        window.logoutAdmin = function() { sessionStorage.removeItem('shalan_admin_auth'); location.reload(); };
+
+        // ================= 1. الواجهة =================
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active'); event.currentTarget.classList.add('active');
+            if (window.innerWidth < 1024) toggleSidebar();
+        }
+        function toggleMediaInputs(type) {
+            if(type === 'design') {
+                if(document.getElementById('project_media_type').value === 'youtube') { document.getElementById('media_upload_wrapper').classList.add('hidden'); document.getElementById('media_youtube_wrapper').classList.remove('hidden'); } 
+                else { document.getElementById('media_upload_wrapper').classList.remove('hidden'); document.getElementById('media_youtube_wrapper').classList.add('hidden'); }
+            }
+        }
+        function compressImageAndGetBase64(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) { resolve(null); return; }
+                const reader = new FileReader(); reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image(); img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas'); let width = img.width; let height = img.height;
+                        if (width > height && width > 1200) { height *= 1200 / width; width = 1200; } else if (height > 1200) { width *= 1200 / height; height = 1200; }
+                        canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+                    };
+                }; reader.onerror = error => reject(error);
+            });
+        }
+
+        // ================= 2. محرك الاتصال بالسيرفر (API) =================
+        async function api(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            try {
+                const res = await fetch('/api/' + endpoint, options);
+                return await res.json();
+            } catch(e) { console.error(e); return {success: false, data: []}; }
+        }
+
+        let shalanCategories = [], shalanClients = [], shalanProjects = [], shalanPackages = [], shalanExecCategories = [], shalanExecProjects = [];
+        let editStates = { category: null, client: null, project: null, package: null, exec_category: null, exec_project: null };
+
+        async function loadAllData() {
+            shalanCategories = (await api('categories')).data || []; renderCategories(); populateCategoriesCheckboxes();
+            shalanExecCategories = (await api('exec_categories')).data || []; renderExecCategories(); populateExecCategoriesCheckboxes();
+            shalanClients = (await api('clients')).data || []; renderClients(); populateClientsDropdown();
+            shalanProjects = (await api('projects')).data || []; renderProjects();
+            shalanExecProjects = (await api('exec_projects')).data || []; renderExecProjects();
+            shalanPackages = (await api('packages')).data || []; renderPackages();
+            renderGeneralOrders();
+        }
+
+        window.cancelEdit = function(type) {
+            editStates[type] = null;
+            if(type === 'category') { document.getElementById('addCategoryForm').reset(); document.getElementById('catSubmitBtn').innerText = 'حفظ القسم'; document.getElementById('catCancelEditBtn').classList.add('hidden'); document.getElementById('cat_img_preview').classList.add('hidden'); } 
+            else if(type === 'client') { document.getElementById('addClientForm').reset(); document.getElementById('clientSubmitBtn').innerText = 'حفظ العميل'; document.getElementById('clientCancelEditBtn').classList.add('hidden'); document.getElementById('client_img_preview').classList.add('hidden'); } 
+            else if(type === 'project') { document.getElementById('addProjectForm').reset(); document.getElementById('project_thumb_preview').classList.add('hidden'); document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false); toggleMediaInputs('design'); document.getElementById('projectSubmitBtn').innerText = 'رفع ونشر المشروع'; document.getElementById('projectCancelEditBtn').classList.add('hidden'); } 
+            else if(type === 'package') { document.getElementById('addPackageForm').reset(); document.getElementById('pkg_img_preview').classList.add('hidden'); document.getElementById('optionsContainer').innerHTML = ''; addOptionRow(); document.getElementById('packageSubmitBtn').innerText = 'حفظ الباقة'; document.getElementById('packageCancelEditBtn').classList.add('hidden'); } 
+            else if(type === 'exec_category') { document.getElementById('addExecCategoryForm').reset(); document.getElementById('execCatSubmitBtn').innerText = 'حفظ قسم التنفيذ'; document.getElementById('execCatCancelEditBtn').classList.add('hidden'); } 
+            else if(type === 'exec_project') { document.getElementById('addExecProjectForm').reset(); document.getElementById('exec_project_thumb_preview').classList.add('hidden'); document.getElementById('exec_gallery_preview').innerHTML = ''; document.getElementById('exec_gallery_preview').classList.add('hidden'); document.querySelectorAll('.exec-cat-checkbox').forEach(cb => cb.checked = false); document.getElementById('execProjectSubmitBtn').innerText = 'حفظ مشروع التنفيذ'; document.getElementById('execProjectCancelEditBtn').classList.add('hidden'); }
+        }
+
+        window.deleteItem = async function(type, id) {
+            if(!confirm('متأكد من الحذف نهائياً من قاعدة البيانات؟')) return;
+            await api(`${type}/${id}`, 'DELETE');
+            loadAllData();
+        }
+
+        // ================= 3. أقسام التصميم =================
+        function renderCategories() {
+            const list = document.getElementById('categoriesList'); list.innerHTML = '';
+            shalanCategories.forEach(cat => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3">${cat.img ? `<img src="${cat.img}" class="w-10 h-10 object-cover rounded">` : `<div class="w-10 h-10 bg-pink-500/20 rounded"></div>`}<div><span class="font-bold block">${cat.name}</span></div></div><div><button onclick="editCategory('${cat._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('categories', '${cat._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; });
+        }
+        window.editCategory = function(id) {
+            const cat = shalanCategories.find(c => c._id === id); editStates.category = id;
+            document.getElementById('cat_name').value = cat.name; document.getElementById('cat_tag').value = cat.tag;
+            if(cat.img) { document.getElementById('cat_img_preview').src = cat.img; document.getElementById('cat_img_preview').classList.remove('hidden'); }
+            document.getElementById('catSubmitBtn').innerText = 'تحديث'; document.getElementById('catCancelEditBtn').classList.remove('hidden');
+        }
+        document.getElementById('addCategoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); const file = document.getElementById('cat_img').files[0]; const base64Img = file ? await compressImageAndGetBase64(file) : null; 
+            const payload = { name: document.getElementById('cat_name').value, tag: document.getElementById('cat_tag').value };
+            if(base64Img) payload.img = base64Img;
+            if(editStates.category) await api(`categories/${editStates.category}`, 'PUT', payload);
+            else await api('categories', 'POST', payload);
+            cancelEdit('category'); loadAllData();
+        });
+
+        // ================= 4. أقسام التنفيذ =================
+        function renderExecCategories() {
+            const list = document.getElementById('execCategoriesList'); list.innerHTML = '';
+            shalanExecCategories.forEach(cat => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div><span class="font-bold block">${cat.name}</span><span class="text-xs text-gray-400">${cat.desc}</span></div><div><button onclick="editExecCategory('${cat._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('exec_categories', '${cat._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; });
+        }
+        window.editExecCategory = function(id) {
+            const cat = shalanExecCategories.find(c => c._id === id); editStates.exec_category = id;
+            document.getElementById('exec_cat_name').value = cat.name; document.getElementById('exec_cat_tag').value = cat.tag; document.getElementById('exec_cat_desc').value = cat.desc;
+            document.getElementById('execCatSubmitBtn').innerText = 'تحديث'; document.getElementById('execCatCancelEditBtn').classList.remove('hidden');
+        }
+        document.getElementById('addExecCategoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const payload = { name: document.getElementById('exec_cat_name').value, tag: document.getElementById('exec_cat_tag').value, desc: document.getElementById('exec_cat_desc').value };
+            if(editStates.exec_category) await api(`exec_categories/${editStates.exec_category}`, 'PUT', payload);
+            else await api('exec_categories', 'POST', payload);
+            cancelEdit('exec_category'); loadAllData();
+        });
+
+        // ================= الاستيراد عبر ملف CSV للأقسام فقط =================
+        window.importCategoriesCSV = async function(event, type) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const text = e.target.result; const lines = text.split(/\r?\n/);
+                if(lines.length < 1) { alert("الملف فارغ أو لا يحتوي على بيانات."); return; }
+                let newItems = []; const separator = lines[0].includes(';') ? ';' : ',';
+                for(let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim(); if(!line) continue;
+                    const cols = line.split(separator);
+                    if(cols.length >= 2) { 
+                        const name = cols[0] ? cols[0].replace(/"/g, '').trim() : "بدون اسم";
+                        const tag = cols[1] ? cols[1].replace(/"/g, '').replace(/\s+/g, '_').trim() : `tag_${Date.now()}`;
+                        let newItem = { name: name, tag: tag };
+                        if (type === 'exec_categories') newItem.desc = cols[2] ? cols[2].replace(/"/g, '').trim() : "بدون وصف";
+                        newItems.push(newItem);
+                    }
+                }
+                if(newItems.length > 0) {
+                    alert(`جاري استيراد ${newItems.length} قسم إلى قاعدة البيانات...`);
+                    for(let item of newItems) {
+                        await api(type, 'POST', item); // يتم الإرسال للسيرفر فوراً
+                    }
+                    loadAllData();
+                    alert("تم الاستيراد بنجاح!");
+                } else { alert("لم يتم العثور على بيانات صحيحة في الملف."); }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file, 'UTF-8');
+        };
+
+        // ================= 5. المشاريع، العملاء، الباقات =================
+        function populateExecCategoriesCheckboxes() { const container = document.getElementById('execCategoriesCheckboxes'); container.innerHTML = ''; shalanExecCategories.forEach(cat => container.innerHTML += `<label class="flex items-center gap-2 cursor-pointer bg-white/5 px-4 py-2 rounded-lg border border-white/10 hover:border-yellow-500 transition"><input type="checkbox" value="${cat.tag}" class="custom-cb exec-cat-checkbox"><span class="text-sm">${cat.name}</span></label>`); }
+        function populateCategoriesCheckboxes() { const container = document.getElementById('dynamicCategoriesCheckboxes'); container.innerHTML = ''; shalanCategories.forEach(cat => container.innerHTML += `<label class="flex items-center gap-2 cursor-pointer bg-white/5 px-4 py-2 rounded-lg border border-white/10 hover:border-pink-500 transition"><input type="checkbox" value="${cat.tag}" class="custom-cb cat-checkbox"><span class="text-sm">${cat.name}</span></label>`); }
+        function populateClientsDropdown() { const sels = document.querySelectorAll('#client_select, #exec_client_select'); sels.forEach(sel => { sel.innerHTML = '<option value="">بدون عميل</option>'; shalanClients.forEach(c => sel.innerHTML += `<option value="${c.name}">${c.name}</option>`); }); }
+
+        // --- أعمال التصميم ---
+        function renderProjects() {
+            const list = document.getElementById('projectsList'); list.innerHTML = '';
+            shalanProjects.forEach(proj => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3"><img src="${proj.thumbnail || 'https://via.placeholder.com/150'}" class="w-16 h-12 object-cover rounded"><span>${proj.title}</span></div><div><button onclick="editProject('${proj._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded">تعديل</button> <button onclick="deleteItem('projects', '${proj._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded">حذف</button></div></li>`; });
+        }
+        window.editProject = function(id) {
+            const p = shalanProjects.find(x => x._id === id); editStates.project = id;
+            document.getElementById('project_title').value = p.title; document.getElementById('client_select').value = p.client_name;
+            document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = (p.tags || []).includes(cb.value));
+            if(p.thumbnail) { document.getElementById('project_thumb_preview').src = p.thumbnail; document.getElementById('project_thumb_preview').classList.remove('hidden'); }
+            document.getElementById('project_media_type').value = p.media_type || 'image'; toggleMediaInputs('design');
+            if(p.media_type === 'youtube') document.getElementById('project_youtube_url').value = p.media_content;
+            document.getElementById('projectSubmitBtn').innerText = 'تحديث'; document.getElementById('projectCancelEditBtn').classList.remove('hidden'); document.getElementById('projects').scrollIntoView({behavior: 'smooth'});
+        }
+        document.getElementById('addProjectForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); const btn = document.getElementById('projectSubmitBtn'); btn.innerText = 'جاري المعالجة...';
+            const tags = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
+            const thumbFile = document.getElementById('project_thumbnail').files[0]; let thumbB64 = thumbFile ? await compressImageAndGetBase64(thumbFile) : null;
+            const type = document.getElementById('project_media_type').value; let content = "";
+            if(type === 'youtube') { let url = document.getElementById('project_youtube_url').value; let vid = url.split('v=')[1] || url.split('/').pop(); let amp = vid.indexOf('&'); if(amp !== -1) vid = vid.substring(0, amp); content = url.includes('embed') ? url : `https://www.youtube.com/embed/${vid}?autoplay=1`; }
+            else { const f = document.getElementById('project_media_file').files[0]; content = f ? await compressImageAndGetBase64(f) : null; }
+            
+            const payload = { title: document.getElementById('project_title').value, client_name: document.getElementById('client_select').value, tags: tags, media_type: type };
+            if(thumbB64) payload.thumbnail = thumbB64; if(content) payload.media_content = content;
+            if(editStates.project) await api(`projects/${editStates.project}`, 'PUT', payload); else await api('projects', 'POST', payload);
+            cancelEdit('project'); loadAllData(); btn.innerText = 'رفع ونشر المشروع';
+        });
+
+        // --- أعمال التنفيذ ---
+        function renderExecProjects() {
+            const list = document.getElementById('execProjectsList'); list.innerHTML = '';
+            shalanExecProjects.forEach(proj => { list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3"><img src="${proj.thumbnail || 'https://via.placeholder.com/150'}" class="w-16 h-12 object-cover rounded"><div><span class="font-bold block">${proj.title}</span><span class="text-xs text-yellow-400">عدد الصور: ${proj.gallery ? proj.gallery.length : 0}</span></div></div><div><button onclick="editExecProject('${proj._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('exec_projects', '${proj._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`; });
+        }
+        window.editExecProject = function(id) {
+            const proj = shalanExecProjects.find(p => p._id === id); editStates.exec_project = id;
+            document.getElementById('exec_project_title').value = proj.title; document.getElementById('exec_client_select').value = proj.client_name;
+            document.querySelectorAll('.exec-cat-checkbox').forEach(cb => cb.checked = (proj.tags || []).includes(cb.value));
+            if(proj.thumbnail) { document.getElementById('exec_project_thumb_preview').src = proj.thumbnail; document.getElementById('exec_project_thumb_preview').classList.remove('hidden'); }
+            if(proj.gallery && proj.gallery.length > 0) { const galContainer = document.getElementById('exec_gallery_preview'); galContainer.innerHTML = ''; galContainer.classList.remove('hidden'); proj.gallery.forEach(img => galContainer.innerHTML += `<img src="${img}" class="w-16 h-16 object-cover rounded border border-white/20">`); }
+            document.getElementById('execProjectSubmitBtn').innerText = 'تحديث المشروع'; document.getElementById('execProjectCancelEditBtn').classList.remove('hidden'); document.getElementById('exec_projects').scrollIntoView({behavior: 'smooth'});
+        }
+        document.getElementById('addExecProjectForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); const btn = document.getElementById('execProjectSubmitBtn'); const selectedCats = Array.from(document.querySelectorAll('.exec-cat-checkbox:checked')).map(cb => cb.value);
+            if(selectedCats.length === 0) { alert("حدد قسم واحد على الأقل"); return; } btn.innerText = 'جاري المعالجة...';
+            try {
+                const thumbFile = document.getElementById('exec_project_thumbnail').files[0]; let thumbBase64 = thumbFile ? await compressImageAndGetBase64(thumbFile) : null;
+                const galleryFiles = document.getElementById('exec_project_gallery').files; let galleryBase64Array = [];
+                for(let i = 0; i < galleryFiles.length; i++) { const b64 = await compressImageAndGetBase64(galleryFiles[i]); if(b64) galleryBase64Array.push(b64); }
+                const payload = { title: document.getElementById('exec_project_title').value, client_name: document.getElementById('exec_client_select').value, tags: selectedCats };
+                if(thumbBase64) payload.thumbnail = thumbBase64;
+                if(editStates.exec_project) { const orig = shalanExecProjects.find(p => p._id === editStates.exec_project); payload.gallery = galleryBase64Array.length > 0 ? galleryBase64Array : orig.gallery; await api(`exec_projects/${editStates.exec_project}`, 'PUT', payload); } 
+                else { payload.gallery = galleryBase64Array; await api('exec_projects', 'POST', payload); }
+                cancelEdit('exec_project'); loadAllData(); alert('تم الحفظ بنجاح!');
+            } catch (err) { alert('خطأ في معالجة الصور.'); } btn.innerText = 'حفظ مشروع التنفيذ';
+        });
+
+        // --- العملاء ---
+        function renderClients() { const list = document.getElementById('clientsList'); list.innerHTML = ''; shalanClients.forEach(c => list.innerHTML += `<li class="flex justify-between bg-white/5 p-3 rounded-lg"><div class="flex items-center gap-3">${c.logo ? `<img src="${c.logo}" class="w-8 h-8 rounded">`:`🏢`}<span>${c.name}</span></div><div><button onclick="editClient('${c._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded">تعديل</button> <button onclick="deleteItem('clients', '${c._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded">حذف</button></div></li>`); }
+        window.editClient = function(id) { const c = shalanClients.find(x => x._id === id); editStates.client = id; document.getElementById('client_name_input').value = c.name; document.getElementById('client_url').value = c.url; if(c.logo) { document.getElementById('client_img_preview').src = c.logo; document.getElementById('client_img_preview').classList.remove('hidden'); } document.getElementById('clientSubmitBtn').innerText = 'تحديث'; document.getElementById('clientCancelEditBtn').classList.remove('hidden'); }
+        document.getElementById('addClientForm').addEventListener('submit', async function(e) { e.preventDefault(); const file = document.getElementById('client_logo').files[0]; const logoBase64 = file ? await compressImageAndGetBase64(file) : null; const payload = { name: document.getElementById('client_name_input').value, url: document.getElementById('client_url').value }; if(logoBase64) payload.logo = logoBase64; if(editStates.client) await api(`clients/${editStates.client}`, 'PUT', payload); else await api('clients', 'POST', payload); cancelEdit('client'); loadAllData(); });
+
+        // --- الباقات ---
+        window.addOptionRow = function() { const c = document.getElementById('optionsContainer'); const r = document.createElement('div'); r.className = 'flex gap-3 items-center option-row'; r.innerHTML = `<input type="text" placeholder="الخدمة" required class="flex-1 px-4 py-2 rounded-xl glass-input pkg-opt-title"><input type="number" placeholder="السعر" required class="w-24 px-4 py-2 rounded-xl glass-input pkg-opt-price"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 font-bold">&times;</button>`; c.appendChild(r); }
+        function renderPackages() { const list = document.getElementById('packagesList'); list.innerHTML = ''; shalanPackages.forEach(pkg => list.innerHTML += `<li class="bg-white/5 p-4 rounded-lg"><h4 class="font-bold">${pkg.title}</h4><div><button onclick="editPackage('${pkg._id}')" class="text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-sm">تعديل</button> <button onclick="deleteItem('packages', '${pkg._id}')" class="text-red-400 bg-red-400/10 px-2 py-1 rounded text-sm">حذف</button></div></li>`); }
+        window.editPackage = function(id) { const p = shalanPackages.find(x => x._id === id); editStates.package = id; document.getElementById('pkg_title').value = p.title; document.getElementById('pkg_bg_color').value = p.bg_color; document.getElementById('pkg_desc').value = p.description; document.getElementById('pkg_portfolio').value = p.portfolio_link; if(p.image) { document.getElementById('pkg_img_preview').src = p.image; document.getElementById('pkg_img_preview').classList.remove('hidden'); } const c = document.getElementById('optionsContainer'); c.innerHTML = ''; p.options.forEach(opt => { const r = document.createElement('div'); r.className = 'flex gap-3 items-center option-row'; r.innerHTML = `<input type="text" value="${opt.title}" required class="flex-1 px-4 py-2 rounded-xl glass-input pkg-opt-title"><input type="number" value="${opt.price}" required class="w-24 px-4 py-2 rounded-xl glass-input pkg-opt-price"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 font-bold">&times;</button>`; c.appendChild(r); }); document.getElementById('packageSubmitBtn').innerText = 'تحديث'; document.getElementById('packageCancelEditBtn').classList.remove('hidden'); document.getElementById('packages').scrollIntoView({behavior: 'smooth'}); }
+        document.getElementById('addPackageForm').addEventListener('submit', async function(e) { e.preventDefault(); const f = document.getElementById('pkg_image').files[0]; const imgB64 = f ? await compressImageAndGetBase64(f) : null; const options = []; document.querySelectorAll('.option-row').forEach(row => { const t = row.querySelector('.pkg-opt-title').value; const p = row.querySelector('.pkg-opt-price').value; if(t&&p!=="") options.push({title: t, price: parseFloat(p)}); }); const payload = { title: document.getElementById('pkg_title').value, bg_color: document.getElementById('pkg_bg_color').value, description: document.getElementById('pkg_desc').value, portfolio_link: document.getElementById('pkg_portfolio').value, options: options }; if(imgB64) payload.image = imgB64; if(editStates.package) await api(`packages/${editStates.package}`, 'PUT', payload); else await api('packages', 'POST', payload); cancelEdit('package'); loadAllData(); });
+
+        // ================= 6. عرض الطلبات من السيرفر =================
+        let currentOrderView = 'services';
+        async function renderGeneralOrders() {
+            currentOrderView = 'services'; document.getElementById('currentOrderTableTitle').innerText = "يتم عرض: طلبات الخدمات العامة";
+            const tbody = document.getElementById('ordersTableBody'); const thead = document.getElementById('ordersTableHeader'); const noMsg = document.getElementById('noOrdersMsg');
+            thead.innerHTML = `<tr><th class="p-4">التاريخ</th><th class="p-4">اسم العميل</th><th class="p-4">رقم التواصل</th><th class="p-4">المدينة</th><th class="p-4">الخدمة المطلوبة</th><th class="p-4">التفاصيل</th></tr>`; tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center">جاري التحميل من السيرفر...</td></tr>';
+            const res = await api('service_orders'); const orders = res.data || []; tbody.innerHTML = '';
+            if(orders.length === 0) { noMsg.classList.remove('hidden'); } else { noMsg.classList.add('hidden'); orders.forEach(order => { tbody.innerHTML += `<tr class="hover:bg-white/5 transition-colors border-b border-white/5"><td class="p-4 text-sm text-gray-400 whitespace-nowrap">${order.date || ''}</td><td class="p-4 font-bold whitespace-nowrap">${order.name || ''}</td><td class="p-4 text-blue-400 whitespace-nowrap" dir="ltr">${order.phone || ''}</td><td class="p-4 text-gray-300 whitespace-nowrap">${order.city || ''}</td><td class="p-4 text-pink-400 font-semibold whitespace-nowrap">${order.service || ''}</td><td class="p-4 text-xs text-gray-400 max-w-xs truncate" title="${order.details || ''}">${order.details || ''}</td></tr>`; }); }
+        }
+        
+        async function renderPackageOrders() {
+            currentOrderView = 'packages'; document.getElementById('currentOrderTableTitle').innerText = "يتم عرض: طلبات الباقات المخصصة";
+            const tbody = document.getElementById('ordersTableBody'); const thead = document.getElementById('ordersTableHeader'); const noMsg = document.getElementById('noOrdersMsg');
+            thead.innerHTML = `<tr><th class="p-4">التاريخ</th><th class="p-4">اسم العميل</th><th class="p-4">رقم التواصل</th><th class="p-4">الباقة المطلوبة</th><th class="p-4">الخدمات المختارة</th><th class="p-4">الإجمالي</th></tr>`; tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center">جاري التحميل من السيرفر...</td></tr>';
+            const res = await api('package_orders'); const orders = res.data || []; tbody.innerHTML = '';
+            if(orders.length === 0) { noMsg.classList.remove('hidden'); } else { noMsg.classList.add('hidden'); orders.forEach(order => { tbody.innerHTML += `<tr class="hover:bg-white/5 transition-colors border-b border-white/5"><td class="p-4 text-sm text-gray-400 whitespace-nowrap">${order.date || ''}</td><td class="p-4 font-bold whitespace-nowrap">${order.customer || ''}</td><td class="p-4 text-blue-400 whitespace-nowrap" dir="ltr">${order.phone || ''}</td><td class="p-4 text-pink-400 font-semibold whitespace-nowrap">${order.package || ''}</td><td class="p-4 text-xs text-gray-300 min-w-[200px]">${order.services || ''}</td><td class="p-4 font-bold text-green-400 whitespace-nowrap">${order.total || ''}$</td></tr>`; }); }
+        }
+        
+        window.clearCurrentOrders = async function() {
+            if(confirm('هل أنت متأكد من مسح جميع الطلبات من قاعدة البيانات نهائياً؟')) {
+                const table = currentOrderView === 'services' ? 'service_orders' : 'package_orders';
+                const res = await api(table);
+                for(let order of res.data) { await api(`${table}/${order._id}`, 'DELETE'); }
+                if(currentOrderView === 'services') renderGeneralOrders(); else renderPackageOrders();
+            }
+        }
+
+        // ================= 7. النسخ الاحتياطي =================
+        window.exportData = async function() {
+            const endpoints = ['categories', 'clients', 'projects', 'packages', 'exec_categories', 'exec_projects', 'package_orders', 'service_orders'];
+            let backup = {};
+            for(let ep of endpoints) { const res = await api(ep); backup[ep] = res.data || []; }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
+            const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", "shalan_backup_" + new Date().getTime() + ".json");
+            document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
+        };
+
+        window.importData = function(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if(confirm("تحذير: سيتم إضافة هذه البيانات إلى قاعدة البيانات. هل أنت متأكد؟")) {
+                        for(let key of Object.keys(importedData)) {
+                            for(let item of importedData[key]) {
+                                delete item._id; // إزالة المعرف القديم لتجنب التكرار
+                                await api(key, 'POST', item);
+                            }
+                        }
+                        alert("تم استيراد البيانات بنجاح! سيتم إعادة تحميل الصفحة."); location.reload();
+                    }
+                } catch (error) { alert("خطأ: ملف غير صالح أو تالف."); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        };
+
+        // التحميل الأولي (في حال كان مسجل الدخول)
+        window.addEventListener('DOMContentLoaded', () => { 
+            if(sessionStorage.getItem('shalan_admin_auth') === 'true') { loadAllData(); }
+        });
+    </script>
+</body>
+</html>

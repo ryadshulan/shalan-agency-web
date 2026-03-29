@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تخصيص الباقات | شعلان للدعاية والإعلان</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; background: radial-gradient(circle at top, #2d1b4d 0%, #0a0514 100%); color: white; min-height: 100vh; overflow-x: hidden; }
+        .glossy-nav { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 0 15px rgba(236, 72, 153, 0.3); }
+        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border-radius: 2rem; border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s ease; }
+        .glass-card:hover { border-color: rgba(255, 255, 255, 0.15); transform: translateY(-5px); }
+        .custom-checkbox { appearance: none; background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 12px; border-radius: 8px; display: inline-block; position: relative; cursor: pointer; transition: 0.3s; }
+        .custom-checkbox:checked { background-color: #ec4899; border-color: #ec4899; box-shadow: 0 0 15px rgba(236, 72, 153, 0.5); }
+        .custom-checkbox:checked:after { content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px; }
+        .option-row { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); transition: 0.3s; }
+        .option-row:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(236, 72, 153, 0.3); }
+        /* ستايل نافذة الطلب */
+        .glass-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s; }
+        .glass-input:focus { border-color: #ec4899; background: rgba(255, 255, 255, 0.1); outline: none; }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="fixed top-20 right-10 w-96 h-96 bg-pink-600/20 blur-[150px] -z-10 rounded-full"></div>
+    <div class="fixed bottom-20 left-10 w-96 h-96 bg-blue-600/20 blur-[150px] -z-10 rounded-full"></div>
+
+    <header class="fixed top-6 inset-x-0 z-50 px-4">
+        <nav class="max-w-7xl mx-auto glossy-nav rounded-full px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-white shadow-lg">ش</div>
+                <a href="index.html" class="font-extrabold text-xl tracking-wider hover:text-pink-400 transition-colors">شعلان</a>
+            </div>
+            <ul class="hidden lg:flex items-center gap-2 text-sm font-semibold">
+                <li><a href="index.html" class="nav-item px-5 py-2 rounded-full transition-all">الرئيسية</a></li>
+                <li><a href="design.html" class="nav-item px-5 py-2 rounded-full transition-all">التصميم</a></li>
+                <li><a href="execution.html" class="nav-item px-5 py-2 rounded-full transition-all">التنفيذ</a></li>
+                <li><a href="packages.html" class="nav-item px-5 py-2 rounded-full bg-white/10 transition-all">الباقات</a></li>
+                <li><a href="about.html" class="nav-item px-5 py-2 rounded-full transition-all">من نحن</a></li>
+                
+                <li><a href="index.html#order-section" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 px-6 py-2.5 rounded-full transition-all shadow-lg inline-block">اطلب الخدمة</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="pt-40 pb-10 px-6 text-center">
+        <h1 class="text-4xl lg:text-5xl font-extrabold mb-4">
+            فصّل باقتك <span class="text-transparent bg-clip-text bg-gradient-to-l from-pink-500 to-purple-400">على مقاس طموحك</span>
+        </h1>
+        <p class="text-gray-400 max-w-2xl mx-auto text-lg">اختر الباقة الأساسية ثم أضف الخدمات التي تحتاجها فقط. السعر يتحدث تلقائياً.</p>
+    </section>
+
+    <section class="py-10 px-6 max-w-7xl mx-auto min-h-[50vh]">
+        <div id="packagesContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <p id="loadingMsg" class="text-center col-span-1 lg:col-span-2 text-gray-400">جاري تحميل الباقات...</p>
+        </div>
+    </section>
+
+    <div id="orderModal" class="fixed inset-0 z-[100] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center opacity-0 transition-opacity duration-300 px-4">
+        <div class="glass-card w-full max-w-md p-8 relative">
+            <button onclick="closeOrderModal()" class="absolute top-4 left-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h2 class="text-2xl font-bold mb-2 text-pink-400">تأكيد طلب الباقة</h2>
+            <p class="text-gray-400 text-sm mb-6">أدخل بياناتك لإرسال الطلب عبر الواتساب مباشرة.</p>
+            
+            <form id="submitOrderForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">الاسم / اسم النشاط التجاري</label>
+                    <input type="text" id="customer_name" required class="w-full px-4 py-3 rounded-xl glass-input">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">رقم التواصل (واتساب)</label>
+                    <input type="text" id="customer_phone" required placeholder="مثال: +9677..." class="w-full px-4 py-3 rounded-xl glass-input" dir="ltr">
+                </div>
+                <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg hover:scale-[1.02] transition-transform mt-4 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    إرسال الطلب عبر واتساب
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="text-center py-8 border-t border-white/5 text-gray-500 text-sm mt-20">
+        جميع الحقوق محفوظة © لوكالة شعلان للدعاية والإعلان
+    </footer>
+
+    <script>
+        // ================= دالة الاتصال بالسيرفر =================
+        async function api(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            try {
+                const res = await fetch('/api/' + endpoint, options);
+                return await res.json();
+            } catch(e) { console.error(e); return {success: false, data: []}; }
+        }
+
+        let activePackageIdForOrder = null;
+        let allCurrentPackages = [];
+
+        function renderPackagesData(packages) {
+            allCurrentPackages = packages;
+            const container = document.getElementById('packagesContainer');
+            if (!container) return;
+            
+            if(packages.length === 0) {
+                container.innerHTML = '<p class="text-center col-span-1 lg:col-span-2 text-gray-400">لا توجد باقات متاحة حالياً.</p>';
+                return;
+            }
+
+            container.innerHTML = ''; 
+            
+            packages.forEach(pkg => {
+                const pkgId = pkg._id || pkg.id; // التوافق مع MongoDB
+                const glowColor = pkg.bg_color || '#ec4899'; 
+                let optionsHTML = '';
+                
+                if (pkg.options && pkg.options.length > 0) {
+                    pkg.options.forEach(opt => {
+                        optionsHTML += `
+                            <label class="flex items-center justify-between p-4 option-row rounded-xl cursor-pointer group">
+                                <div class="flex items-center gap-4">
+                                    <input type="checkbox" class="custom-checkbox pkg-cb-${pkgId}" data-title="${opt.title}" data-price="${opt.price}" onchange="calculateTotal('${pkgId}')">
+                                    <span class="text-gray-300 group-hover:text-white transition">${opt.title}</span>
+                                </div>
+                                <span class="font-bold text-lg" style="color: ${glowColor}">+${opt.price}$</span>
+                            </label>
+                        `;
+                    });
+                } else {
+                    optionsHTML = '<p class="text-gray-500 text-sm">لا توجد خيارات إضافية لهذه الباقة.</p>';
+                }
+
+                const packageHTML = `
+                    <div class="glass-card relative overflow-hidden flex flex-col h-full" style="border-top: 4px solid ${glowColor}; box-shadow: 0 -10px 40px -20px ${glowColor};">
+                        ${pkg.image ? `<img src="${pkg.image}" class="w-full h-48 object-cover border-b border-white/5">` : ''}
+                        <div class="p-8 pb-4 flex-1">
+                            <h2 class="text-3xl font-bold mb-3 ${pkg.image ? 'mt-2' : ''}">${pkg.title}</h2>
+                            <p class="text-gray-400 text-sm leading-relaxed mb-8">${pkg.description}</p>
+                            <h3 class="text-sm font-bold text-gray-500 mb-4 border-b border-white/5 pb-2">اختر الخدمات المطلوبة:</h3>
+                            <div class="space-y-3">${optionsHTML}</div>
+                        </div>
+
+                        <div class="p-8 pt-6 bg-black/20 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6 mt-auto">
+                            <div class="text-center sm:text-right">
+                                <div class="text-sm text-gray-400 mb-1">الإجمالي التقريبي</div>
+                                <div class="text-3xl font-extrabold flex items-center gap-1">
+                                    <span id="total-${pkgId}" class="text-white">0</span>
+                                    <span style="color: ${glowColor}">$</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <a href="${pkg.portfolio_link || '#'}" class="w-full text-center px-4 py-3 rounded-xl font-bold text-white transition-all hover:bg-white/10 border border-white/20">استعراض الأعمال</a>
+                                <button onclick="openOrderModal('${pkgId}')" class="w-full text-center px-6 py-3 rounded-xl font-bold text-white transition-all shadow-lg hover:scale-105" style="background: ${glowColor}">
+                                    اطلب الباقة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += packageHTML;
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            // جلب الباقات من السيرفر
+            const res = await api('packages');
+            if(res.success && res.data) {
+                renderPackagesData(res.data);
+            } else {
+                document.getElementById('packagesContainer').innerHTML = '<p class="text-center col-span-1 lg:col-span-2 text-red-400">حدث خطأ في تحميل الباقات.</p>';
+            }
+        });
+
+        window.calculateTotal = function(pkgId) {
+            const checkboxes = document.querySelectorAll(`.pkg-cb-${pkgId}`);
+            let total = 0;
+            checkboxes.forEach(cb => { if (cb.checked) total += parseFloat(cb.dataset.price); });
+            
+            const totalDisplay = document.getElementById(`total-${pkgId}`);
+            totalDisplay.style.transform = 'scale(1.2)';
+            totalDisplay.innerText = total;
+            setTimeout(() => { totalDisplay.style.transform = 'scale(1)'; totalDisplay.style.transition = 'transform 0.2s'; }, 150);
+            return total;
+        };
+
+        // --- نظام الطلب والواتساب ---
+        const modal = document.getElementById('orderModal');
+
+        window.openOrderModal = function(pkgId) {
+            const total = document.getElementById(`total-${pkgId}`).innerText;
+            if(parseFloat(total) === 0) {
+                alert("يرجى اختيار خدمة واحدة على الأقل من الباقة لحساب التسعيرة.");
+                return;
+            }
+            activePackageIdForOrder = pkgId;
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        window.closeOrderModal = function() {
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+            document.getElementById('submitOrderForm').reset();
+        }
+
+        document.getElementById('submitOrderForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerText = 'جاري إرسال الطلب...';
+            
+            const customerName = document.getElementById('customer_name').value;
+            const customerPhone = document.getElementById('customer_phone').value;
+            const pkg = allCurrentPackages.find(p => String(p._id || p.id) === String(activePackageIdForOrder));
+            
+            // جمع الخدمات المختارة
+            const checkboxes = document.querySelectorAll(`.pkg-cb-${activePackageIdForOrder}:checked`);
+            let selectedOptionsText = "";
+            let selectedOptionsArray = [];
+            checkboxes.forEach(cb => {
+                selectedOptionsText += `- ${cb.dataset.title} (${cb.dataset.price}$)\n`;
+                selectedOptionsArray.push(cb.dataset.title);
+            });
+            const total = document.getElementById(`total-${activePackageIdForOrder}`).innerText;
+
+            // 1. إرسال الطلب إلى السيرفر (قاعدة البيانات)
+            const newOrder = {
+                date: new Date().toLocaleDateString('ar-EG'),
+                customer: customerName,
+                phone: customerPhone,
+                package: pkg.title,
+                services: selectedOptionsArray.join('، '),
+                total: total
+            };
+            await api('package_orders', 'POST', newOrder);
+
+            // 2. تجهيز وإرسال رسالة الواتساب
+            const whatsappNumber = "967770515536"; 
+            const textMsg = `مرحباً وكالة شعلان، أرغب بطلب باقة تصميم:\n\n*الباقة المطلوبة:* ${pkg.title}\n\n*الخدمات المحددة:*\n${selectedOptionsText}\n*الإجمالي التقريبي:* ${total}$\n\n*بياناتي:*\nالاسم: ${customerName}\nالرقم: ${customerPhone}`;
+            const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textMsg)}`;
+            
+            closeOrderModal();
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                window.open(waUrl, '_blank');
+            }, 300);
+        });
+    </script>
+</body>
+</html>

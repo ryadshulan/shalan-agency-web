@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شعلان للدعاية والإعلان - واجهة إبداعية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <style>
+        body { font-family: 'Cairo', sans-serif; background: radial-gradient(circle at top, #2d1b4d 0%, #0a0514 100%); color: white; min-height: 100vh; overflow-x: clip; scroll-behavior: smooth; }
+        .glossy-nav { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .nav-item:hover { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 0 15px rgba(236, 72, 153, 0.3); }
+        img { pointer-events: none; user-select: none; -webkit-user-drag: none; }
+        
+        .glass-card { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border-radius: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-input { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s; }
+        .glass-input:focus { border-color: #ec4899; outline: none; background: rgba(255, 255, 255, 0.08); }
+        .glass-input option, .glass-input optgroup { background: #0a0514; color: white; }
+
+        /* تخصيص السكرول بار للقائمة المنسدلة المخصصة */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(236, 72, 153, 0.5); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ec4899; }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="fixed top-20 right-10 w-96 h-96 bg-pink-600/20 blur-[150px] -z-10 rounded-full"></div>
+    <div class="fixed bottom-20 left-10 w-96 h-96 bg-blue-600/20 blur-[150px] -z-10 rounded-full"></div>
+
+    <header class="fixed top-6 inset-x-0 z-50 px-4">
+        <nav class="max-w-7xl mx-auto glossy-nav rounded-full px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-white shadow-lg">ش</div>
+                <a href="index.html" class="font-extrabold text-xl tracking-wider hover:text-pink-400 transition-colors">شعلان</a>
+            </div>
+            <ul class="hidden lg:flex items-center gap-2 text-sm font-semibold">
+                <li><a href="index.html" class="nav-item px-5 py-2 rounded-full bg-white/10 transition-all">الرئيسية</a></li>
+                <li><a href="design.html" class="nav-item px-5 py-2 rounded-full transition-all">التصميم</a></li>
+                <li><a href="execution.html" class="nav-item px-5 py-2 rounded-full transition-all">التنفيذ</a></li>
+                <li><a href="packages.html" class="nav-item px-5 py-2 rounded-full transition-all">الباقات</a></li>
+                <li><a href="about.html" class="nav-item px-5 py-2 rounded-full transition-all">من نحن</a></li>
+                <li><a href="index.html#order-section" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 px-6 py-2.5 rounded-full transition-all shadow-lg inline-block">اطلب الخدمة</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="pt-52 pb-32 px-6 text-center min-h-[70vh] flex flex-col items-center justify-center">
+        <h1 class="text-5xl md:text-7xl font-black mb-6" id="home_hero_title">تصاميم خيالية تبني علامتك</h1>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl" id="home_hero_desc">نحن نحول الأفكار المجردة إلى واقع مرئي ملموس.</p>
+    </section>
+
+    <section id="order-section" class="py-24 px-4 relative">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 class="text-4xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">ابدأ مشروعك معنا</h2>
+                <p class="text-gray-400">املأ النموذج وسنقوم بالتواصل معك لتنفيذ أفكارك.</p>
+            </div>
+            
+            <form id="generalOrderForm" class="glass-card p-8 md:p-12 shadow-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2 font-semibold">الاسم / اسم الشركة</label>
+                            <input type="text" id="order_name" required class="w-full px-4 py-3 rounded-xl glass-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2 font-semibold">المدينة</label>
+                            <input type="text" id="order_city" required class="w-full px-4 py-3 rounded-xl glass-input">
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2 font-semibold">رقم الهاتف (واتساب)</label>
+                            <div class="flex gap-2" dir="ltr">
+                                <select id="order_country_code" class="glass-input rounded-xl px-2 py-3 w-1/3 text-center cursor-pointer">
+                                    <option value="+966" selected>🇸🇦 +966</option>
+                                    <option value="+967">🇾🇪 +967</option>
+                                    <option value="+971">🇦🇪 +971</option>
+                                    <option value="+20">🇪🇬 +20</option>
+                                    <option value="+968">🇴🇲 +968</option>
+                                    <option value="+965">🇰🇼 +965</option>
+                                    <option value="+973">🇧🇭 +973</option>
+                                    <option value="+974">🇶🇦 +974</option>
+                                </select>
+                                <input type="tel" id="order_phone" required class="w-2/3 px-4 py-3 rounded-xl glass-input" dir="ltr">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2 font-semibold">نوع الخدمة</label>
+                            <div class="relative" id="customServiceDropdown">
+                                <div id="serviceSelectBtn" class="w-full px-4 py-3 rounded-xl glass-input cursor-pointer flex justify-between items-center bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] transition-colors">
+                                    <span id="serviceSelectedText" class="text-gray-400">جاري التحميل...</span>
+                                    <svg class="w-4 h-4 text-gray-400 transition-transform duration-300" id="serviceSelectIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                                
+                                <div id="serviceMenu" class="absolute z-50 w-full mt-2 bg-[#1a0b2e] border border-pink-500/30 rounded-xl shadow-2xl hidden flex-col overflow-hidden">
+                                    <div class="p-3 border-b border-white/10 bg-black/20">
+                                        <div class="relative">
+                                            <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                            <input type="text" id="serviceSearchInput" placeholder="ابحث عن الخدمة..." class="w-full pl-3 pr-9 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-pink-500 text-sm transition-colors">
+                                        </div>
+                                    </div>
+                                    <ul id="serviceOptionsList" class="overflow-y-auto p-2 max-h-56 text-sm custom-scrollbar">
+                                        </ul>
+                                </div>
+                                <input type="hidden" id="order_service" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <label class="block text-sm text-gray-300 mb-2 font-semibold">تفاصيل الفكرة (اختياري)</label>
+                    <textarea id="order_details" rows="4" class="w-full px-4 py-3 rounded-xl glass-input resize-none"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-4 rounded-xl shadow-lg hover:scale-[1.02] transition-transform text-lg">
+                    إرسال الطلب الآن
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <footer class="text-center py-8 border-t border-white/5 text-gray-500 text-sm mt-10">
+        جميع الحقوق محفوظة © لوكالة شعلان للدعاية والإعلان
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        // ================= دالة الاتصال بالسيرفر =================
+        async function api(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            try {
+                const res = await fetch('/api/' + endpoint, options);
+                return await res.json();
+            } catch(e) { console.error(e); return {success: false, data: []}; }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            
+            // ================= 1. إعداد القائمة المنسدلة المخصصة مع البحث وجلب الأقسام =================
+            const serviceSelectBtn = document.getElementById('serviceSelectBtn');
+            const serviceSelectedText = document.getElementById('serviceSelectedText');
+            const serviceSelectIcon = document.getElementById('serviceSelectIcon');
+            const serviceMenu = document.getElementById('serviceMenu');
+            const serviceSearchInput = document.getElementById('serviceSearchInput');
+            const serviceOptionsList = document.getElementById('serviceOptionsList');
+            const hiddenServiceInput = document.getElementById('order_service');
+            const dropdownContainer = document.getElementById('customServiceDropdown');
+
+            let allOptions = [];
+
+            // جلب البيانات من السيرفر بدلاً من localStorage
+            const designRes = await api('categories');
+            const execRes = await api('exec_categories');
+            const designCats = designRes.data || [];
+            const execCats = execRes.data || [];
+
+            // تجميع الخيارات
+            if(designCats.length > 0) {
+                allOptions.push({ type: 'header', label: '🎨 خدمات التصميم' });
+                designCats.forEach(cat => allOptions.push({ type: 'option', value: `تصميم: ${cat.name}`, label: cat.name }));
+            }
+            if(execCats.length > 0) {
+                allOptions.push({ type: 'header', label: '🛠️ خدمات التنفيذ والمقاولات' });
+                execCats.forEach(cat => allOptions.push({ type: 'option', value: `تنفيذ: ${cat.name}`, label: cat.name }));
+            }
+            if(designCats.length === 0 && execCats.length === 0) {
+                allOptions = [
+                    { type: 'option', value: 'موشن جرافيك', label: 'موشن جرافيك' },
+                    { type: 'option', value: 'هوية بصرية', label: 'هوية بصرية' },
+                    { type: 'option', value: 'لوحات وكلادينج', label: 'لوحات وكلادينج' }
+                ];
+            }
+
+            serviceSelectedText.innerText = "-- اختر نوع الخدمة --"; // بعد التحميل
+
+            // دالة رسم الخيارات بناءً على نص البحث
+            function renderOptions(filterText = '') {
+                serviceOptionsList.innerHTML = '';
+                let hasResults = false;
+
+                allOptions.forEach(opt => {
+                    if (opt.type === 'header') {
+                        serviceOptionsList.innerHTML += `<li class="px-3 py-2 mt-2 text-xs font-bold text-pink-500 bg-white/5 rounded pointer-events-none">${opt.label}</li>`;
+                    } else {
+                        if (opt.label.toLowerCase().includes(filterText.toLowerCase())) {
+                            hasResults = true;
+                            serviceOptionsList.innerHTML += `<li class="px-4 py-2.5 mt-1 hover:bg-pink-600 hover:text-white rounded-lg cursor-pointer transition-colors" data-value="${opt.value}">${opt.label}</li>`;
+                        }
+                    }
+                });
+
+                if (!hasResults) {
+                    serviceOptionsList.innerHTML = '<li class="px-3 py-4 text-gray-500 text-center">لا توجد نتائج مطابقة لبحثك</li>';
+                }
+
+                // إضافة أحداث النقر للخيارات الجديدة
+                serviceOptionsList.querySelectorAll('li[data-value]').forEach(li => {
+                    li.addEventListener('click', function(e) {
+                        e.stopPropagation(); 
+                        hiddenServiceInput.value = this.getAttribute('data-value');
+                        serviceSelectedText.innerText = this.innerText;
+                        serviceSelectedText.classList.remove('text-gray-400');
+                        serviceSelectedText.classList.add('text-white');
+                        closeDropdown();
+                    });
+                });
+            }
+
+            function openDropdown() {
+                serviceMenu.classList.remove('hidden');
+                serviceMenu.classList.add('flex');
+                serviceSelectBtn.classList.add('border-pink-500');
+                serviceSelectIcon.classList.add('rotate-180');
+                serviceSearchInput.focus();
+                renderOptions(); 
+            }
+
+            function closeDropdown() {
+                serviceMenu.classList.add('hidden');
+                serviceMenu.classList.remove('flex');
+                serviceSelectBtn.classList.remove('border-pink-500');
+                serviceSelectIcon.classList.remove('rotate-180');
+                serviceSearchInput.value = ''; 
+            }
+
+            serviceSelectBtn.addEventListener('click', () => {
+                if(serviceMenu.classList.contains('hidden')) openDropdown();
+                else closeDropdown();
+            });
+
+            serviceSearchInput.addEventListener('input', (e) => {
+                renderOptions(e.target.value);
+            });
+
+            document.addEventListener('click', (e) => {
+                if(!dropdownContainer.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+
+            renderOptions();
+
+
+            // ================= 2. معالجة الطلب والإرسال للسيرفر والواتساب =================
+            document.getElementById('generalOrderForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                if(!hiddenServiceInput.value) {
+                    alert("يرجى اختيار نوع الخدمة من القائمة المنسدلة.");
+                    openDropdown();
+                    return;
+                }
+
+                const btn = this.querySelector('button[type="submit"]');
+                const originalText = btn.innerText;
+                btn.innerText = 'جاري إرسال الطلب...';
+
+                const orderData = {
+                    date: new Date().toLocaleDateString('ar-EG'),
+                    name: document.getElementById('order_name').value,
+                    phone: document.getElementById('order_country_code').value + document.getElementById('order_phone').value,
+                    city: document.getElementById('order_city').value,
+                    service: hiddenServiceInput.value,
+                    details: document.getElementById('order_details').value || 'لم يتم كتابة تفاصيل.'
+                };
+
+                // إرسال البيانات لقاعدة البيانات عبر السيرفر
+                await api('service_orders', 'POST', orderData);
+
+                const waNumber = "967770515536";
+                const message = `*طلب خدمة جديد 🚀*\n\n` +
+                                `*الاسم / الشركة:* ${orderData.name}\n` +
+                                `*المدينة:* ${orderData.city}\n` +
+                                `*رقم الواتساب:* ${orderData.phone}\n` +
+                                `*الخدمة المطلوبة:* ${orderData.service}\n\n` +
+                                `*تفاصيل الفكرة:*\n${orderData.details}`;
+
+                const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    this.reset();
+                    serviceSelectedText.innerText = "-- اختر نوع الخدمة --";
+                    serviceSelectedText.classList.add('text-gray-400');
+                    serviceSelectedText.classList.remove('text-white');
+                    hiddenServiceInput.value = "";
+                    window.open(waLink, '_blank');
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
