@@ -154,23 +154,30 @@
 </head>
 <body class="relative">
 
-    <header class="fixed top-6 inset-x-0 z-50 px-4">
-        <nav class="max-w-7xl mx-auto glossy-nav rounded-full px-6 py-3 flex justify-between items-center">
+   <header class="fixed top-6 inset-x-0 z-50 px-4">
+        <nav class="max-w-7xl mx-auto glossy-nav rounded-full px-6 py-3 flex justify-between items-center relative">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-white shadow-lg shadow-pink-500/50">ش</div>
                 <a href="index.html" class="font-extrabold text-xl tracking-wider hover:text-pink-400 transition-colors">شعلان</a>
             </div>
-            <ul class="hidden lg:flex items-center gap-2 text-sm font-semibold">
-                <li><a href="index.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">الرئيسية</a></li>
-                <li><a href="design.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300 bg-white/10">التصميم</a></li>
-                <li><a href="execution.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">التنفيذ</a></li>
-                <li><a href="packages.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">الباقات</a></li>
-                <li><a href="about.html" class="nav-item px-5 py-2 rounded-full transition-all duration-300">من نحن</a></li>
-                <li><a href="index.html#order-section" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 px-6 py-2.5 rounded-full transition-all border border-pink-400/50 shadow-lg shadow-pink-500/30 inline-block">اطلب الخدمة</a></li>
+
+            <button onclick="toggleMobileMenu()" class="lg:hidden p-2 text-white hover:text-pink-500 transition-colors">
+                <svg id="menuIcon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                </svg>
+            </button>
+
+            <ul id="navMenu" class="hidden lg:flex items-center gap-2 text-sm font-semibold absolute lg:static top-20 right-0 left-0 bg-[#1a0b2e]/95 lg:bg-transparent p-6 lg:p-0 rounded-3xl lg:rounded-none border border-white/10 lg:border-0 flex-col lg:flex-row backdrop-blur-xl lg:backdrop-blur-none shadow-2xl lg:shadow-none transition-all duration-300">
+                <li class="w-full lg:w-auto"><a href="index.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">الرئيسية</a></li>
+                <li class="w-full lg:w-auto"><a href="design.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">التصميم</a></li>
+                <li class="w-full lg:w-auto"><a href="execution.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">التنفيذ</a></li>
+                <li class="w-full lg:w-auto"><a href="packages.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">الباقات</a></li>
+                <li class="w-full lg:w-auto"><a href="about.html" class="nav-item block px-5 py-3 lg:py-2 rounded-full transition-all text-center">من نحن</a></li>
+                <li class="w-full lg:w-auto mt-4 lg:mt-0"><a href="index.html#order-section" onclick="toggleMobileMenu()" class="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 px-6 py-3 rounded-full transition-all shadow-lg text-center block">اطلب الخدمة</a></li>
             </ul>
         </nav>
     </header>
-
+    
     <section class="pt-40 pb-8 px-6 text-center">
         <h1 class="text-4xl md:text-6xl font-black mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400">
             بوابتك لعالم <span class="bg-clip-text text-transparent bg-gradient-to-l from-pink-500 to-purple-500">الإبداع البصري</span>
@@ -499,6 +506,22 @@
                 if (e.code === 'Space' || e.key === 'Escape') { e.preventDefault(); closeModal(); }
             }
         });
+        function toggleMobileMenu() {
+            const menu = document.getElementById('navMenu');
+            const icon = document.getElementById('menuIcon');
+            
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                menu.classList.add('flex');
+                // تغيير الأيقونة إلى X
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            } else {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+                // إعادة الأيقونة إلى Hamburger
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>';
+            }
+        }
     </script>
 </body>
 </html>
