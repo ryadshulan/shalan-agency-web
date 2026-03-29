@@ -34,7 +34,6 @@
         .exec-projects-slider .swiper-slide {
             width: 100%;
             height: 100%;
-            /* تحسين الأداء عند تحريك الصور */
             transform: translateZ(0); 
             will-change: transform, opacity;
         }
@@ -224,14 +223,20 @@
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
-        // ================= دالة الاتصال بالسيرفر =================
+        // ================= دالة الاتصال الذكية (Hybrid API) =================
         async function api(endpoint, method = 'GET', body = null) {
             const options = { method, headers: { 'Content-Type': 'application/json' } };
             if (body) options.body = JSON.stringify(body);
             try {
                 const res = await fetch('/api/' + endpoint, options);
-                return await res.json();
-            } catch(e) { console.error(e); return {success: false, data: []}; }
+                if (res.ok) return await res.json();
+                throw new Error("Server error");
+            } catch(e) { 
+                console.warn("⚠️ السيرفر غير متصل، جاري جلب البيانات محلياً:", endpoint);
+                let storageKey = 'shalan_' + endpoint;
+                let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+                return { success: true, data: data };
+            }
         }
 
         // ================= 1. المتغيرات والبيانات =================
@@ -254,7 +259,7 @@
         ];
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // جلب البيانات من السيرفر
+            // جلب البيانات (من السيرفر أو محلياً عبر API الذكية)
             const catRes = await api('exec_categories');
             const projRes = await api('exec_projects');
 
@@ -312,7 +317,6 @@
             } else {
                 let projectsHTML = '';
                 projectsToRender.forEach(proj => {
-                    // استخدام المعرف الخاص بالسيرفر (_id) أو المحلي (id)
                     const projId = proj._id || proj.id;
                     projectsHTML += `
                         <div class="swiper-slide cursor-pointer" onclick="openGallery('${projId}')">
