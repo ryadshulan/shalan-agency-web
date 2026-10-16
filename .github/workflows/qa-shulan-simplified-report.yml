@@ -1,0 +1,78 @@
+name: QA simplified Shulan report
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/qa-shulan-simplified-report.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install browser automation
+        run: npm install --prefix /tmp/shulan-report-qa puppeteer-core@24 --no-audit --no-fund
+      - name: Validate report, PDF export and quick task creation
+        env:
+          NODE_PATH: /tmp/shulan-report-qa/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs');
+          const binary=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(x=>fs.existsSync(x));
+          if(!binary)throw Error('Chromium browser missing');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:binary,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage();
+              const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+              await page.goto('https://shalan-agency.onrender.com/shulan-management.html',{waitUntil:'domcontentloaded',timeout:90000});
+              await page.waitForFunction(()=>typeof getReportData==='function'&&typeof createReportPdf==='function',{timeout:20000});
+              await page.waitForFunction(()=>{try{return bg.complete&&bg.naturalWidth>0;}catch{return false;}},{timeout:30000});
+              const result=await page.evaluate(()=>{
+                const categoryInput=document.querySelector('#quickTaskCategory');
+                db={
+                  clients:[{id:'qa-client',name:'عميل اختبار مؤقت',phone:'',details:''}],
+                  jobs:[{id:'qa-done',clientId:'qa-client',title:'مهمة اختبار مكتملة',category:'نوع تجريبي',date:localToday(),status:'done',currency:'ر.ي',price:100,paid:100,cost:20},{id:'qa-pending',clientId:'qa-client',title:'مهمة اختبار غير منجزة',category:'نوع آخر',date:localToday(),status:'pending',currency:'ر.ي',price:0,paid:0,cost:0}],
+                  reportNotes:{}
+                };
+                renderAll();
+                document.querySelector('#reportClient').value='qa-client';
+                document.querySelector('#reportFrom').value=localToday();
+                document.querySelector('#reportTo').value=localToday();
+                document.querySelector('#reportNote').value='ملخص تجريبي';
+                document.querySelector('#reportImpact').value='';
+                const completed=getReportData();
+                reportCanvasDraw(document.querySelector('#reportCanvas'),1);
+                const pdf=createReportPdf();
+                const before=db.jobs.length;
+                document.querySelector('#quickTaskName').value='مهمة مضافة من الملاحظات';
+                document.querySelector('#quickTaskClient').value='qa-client';
+                document.querySelector('#quickTaskForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+                const last=db.jobs.at(-1);
+                return {
+                  categoryInputAbsent:categoryInput===null,
+                  reportsOnlyCompleted:completed.jobs.length===1,
+                  finishedOnly:completed.jobs[0]?.id==='qa-done',
+                  pdfBytes:pdf.size,
+                  pdfType:pdf.type,
+                  canvasWidth:document.querySelector('#reportCanvas').width,
+                  newTaskAdded:db.jobs.length===before+1,
+                  newTaskUncategorized:last?.category==='',
+                  newTaskPending:last?.status==='pending'
+                };
+              });
+              console.log('REPORT QA',JSON.stringify(result));
+              if(errors.length)console.log('Page warnings',errors);
+              for(const [key,value] of Object.entries(result)){
+                if(key==='pdfBytes'){if(value<5000)throw Error('PDF too small');}
+                else if(key==='pdfType'){if(value!=='application/pdf')throw Error('Incorrect PDF format');}
+                else if(key==='canvasWidth'){if(value<1000)throw Error('Canvas not generated');}
+                else if(value!==true)throw Error(key+' failed');
+              }
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
