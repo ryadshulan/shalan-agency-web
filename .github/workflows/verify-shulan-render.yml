@@ -1,0 +1,29 @@
+name: Verify Shulan management live page
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-shulan-render.yml'
+      - 'public/shulan-management.html'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm live page renders as HTML
+        run: |
+          URL="https://shalan-agency.onrender.com/shulan-management.html"
+          for attempt in $(seq 1 8); do
+            status=$(curl -L -sS --max-time 25 -o /tmp/shulan.html -w '%{http_code}' "$URL" || true)
+            if [ "$status" = "200" ] && grep -q 'shulan_workspaces' /tmp/shulan.html && grep -q 'background-image:none' /tmp/shulan.html; then
+              echo "PASS: HTTP 200; HTML app and clean task layout delivered."
+              head -c 100 /tmp/shulan.html
+              exit 0
+            fi
+            echo "Attempt $attempt returned HTTP $status; retrying"
+            sleep 10
+          done
+          echo "FAIL: live Shulan management app did not match expected content"
+          exit 1
