@@ -1,11 +1,7 @@
 name: Deploy Shulan Management to GitHub Pages
 
+# Temporarily manual while repository Pages enablement is unavailable.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'public/shulan-management.html'
-      - '.github/workflows/deploy-shulan-pages.yml'
   workflow_dispatch:
 
 permissions:
