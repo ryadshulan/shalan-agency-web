@@ -32,6 +32,22 @@ jobs:
           cp public/shulan-management.html _site/index.html
           cp public/shulan-management.html _site/shulan-management.html
           touch _site/.nojekyll
+      - name: Activate GitHub Pages if necessary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          response=$(curl --silent --show-error -o /tmp/pages-response.json -w '%{http_code}' \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -d '{"build_type":"workflow"}' \
+            "https://api.github.com/repos/${{ github.repository }}/pages")
+          echo "Pages activation response: $response"
+          if [ "$response" != "201" ] && [ "$response" != "409" ] && [ "$response" != "422" ]; then
+            cat /tmp/pages-response.json
+            exit 1
+          fi
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload website
