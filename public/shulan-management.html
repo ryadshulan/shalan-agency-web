@@ -273,6 +273,12 @@ body{overflow-x:hidden}
  .task-rail .task-action{transition:none}
 }
 </style>
+<style id="shulan-simplified-report">
+/* Quick notes: add tasks without service category. */
+.task-rail .rail-add-row{display:flex!important;justify-content:flex-end;align-items:center;gap:0}
+.task-rail .rail-add-row .rail-plus{width:38px;flex:0 0 38px}
+@media(max-width:750px){.task-rail .rail-add-row{grid-column:2;justify-content:flex-start;min-width:0}.task-rail .rail-add-row .rail-plus{height:39px}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -318,7 +324,7 @@ body{overflow-x:hidden}
     <div class="field wide"><label for="reportNote">لمسات أو ملاحظات على الأعمال المنجزة (اختياري)</label><textarea id="reportNote" placeholder="مثال: تنفيذ المواد وفق متطلبات الهوية البصرية المعتمدة"></textarea></div>
     <div class="field wide"><label for="reportImpact">أبرز المخرجات أو القيمة المقدمة (اختياري)</label><textarea id="reportImpact" placeholder="مثال: إعداد مجموعة موحدة من التصاميم جاهزة للنشر والطباعة"></textarea></div>
     <label class="checkbox-row wide"><input type="checkbox" id="reportFinance"> إظهار الملخص المالي للعميل (اختياري)</label>
-    <div class="hint wide">يُظهر التقرير <strong>الأعمال المكتملة فقط</strong> وتصنيفاتها الحقيقية؛ ولا تظهر فيه المهام المعلّقة أو تحت المراجعة أو الأولويات المستقبلية. يمكن متابعة جميع الحالات من لوحة المهام الداخلية.</div>
+    <div class="hint wide">يُظهر التقرير <strong>إجمالي الأعمال المكتملة فقط</strong> وملخصًا مختصرًا دون تفاصيل المهام أو تصنيفات الخدمات. الأعمال غير المكتملة لا تظهر في التقرير.</div>
     <button class="btn primary w100 wide" id="downloadPdf">⬇ تنزيل التقرير PDF</button><button class="btn w100 wide" id="shareWhatsapp">↗ مشاركة التقرير عبر واتساب</button>
     <p class="small-help wide">على الجوال يمكن فتح نافذة مشاركة PDF مباشرة إذا كان الجهاز يدعمها. على الكمبيوتر يُنزّل التقرير وتفتح رسالة واتساب، ثم تُرفقه يدويًا. لا يوجد إرسال تلقائي دون موافقتك أو ربط واجهة واتساب الرسمية.</p>
    </div><div class="preview-area"><div class="preview-top"><strong>معاينة تقرير الإنجازات على المذكرة الأصلية</strong><span class="muted-tag">A4 · صفحة واحدة</span></div><canvas id="reportCanvas" width="1448" height="2048" aria-label="معاينة التقرير"></canvas></div></div>
@@ -339,7 +345,6 @@ body{overflow-x:hidden}
      <select id="quickTaskClient" aria-label="العميل" required></select>
      <div class="rail-new-client hidden" id="quickNewClientWrap"><input id="quickNewClient" maxlength="130" placeholder="اسم العميل الجديد" aria-label="اسم العميل الجديد"></div>
      <div class="rail-add-row">
-      <input id="quickTaskCategory" maxlength="120" placeholder="الخدمة" aria-label="نوع الخدمة - كتابة حرة" autocomplete="off">
       <button class="rail-plus" type="submit" title="إضافة المهمة" aria-label="إضافة المهمة">+</button>
      </div>
     </form>
@@ -505,7 +510,7 @@ $('#quickTaskForm').addEventListener('submit',e=>{
  }
  if(!db.clients.some(c=>c.id===clientId)){alertToast('اختر العميل الصحيح.');return;}
  const when=new Date().toISOString();
- db.jobs.push({id:uid(),clientId,title,project:'',category:$('#quickTaskCategory').value.trim()||'خدمات أخرى',status:'pending',date:localToday(),dueDate:'',description:'',price:'',cost:'',paid:'',currency:'ر.ي',createdAt:when,updatedAt:when,history:[{from:null,to:'pending',at:when}]});
+ db.jobs.push({id:uid(),clientId,title,project:'',category:'',status:'pending',date:localToday(),dueDate:'',description:'',price:'',cost:'',paid:'',currency:'ر.ي',createdAt:when,updatedAt:when,history:[{from:null,to:'pending',at:when}]});
  save();$('#quickTaskForm').reset();$('#quickTaskClient').value=clientId;$('#taskRailFilter').value='all';renderAll();
  alertToast('تم حفظ المهمة وربطها بالعميل وتحديث جميع التقارير.');
  $('#quickTaskName').focus();
@@ -562,54 +567,33 @@ function reportCanvasDraw(canvas,scale=1){
 
  drawText(ctx,'ملخص الأعمال المنجزة',1368,288,43,pal.wine,800);
  roundRect(ctx,1064,324,304,5,2,pal.wine2);
+
+ // Concise client report: show completed count, without individual task titles or service types.
  const intro=completed.length
-   ?`يسعدنا استعراض حصيلة ${fmtNum(completed.length)} من الأعمال المنجزة لصالح ${d.client?.name||'عميلنا'} خلال الفترة المحددة، ضمن ${fmtNum(d.cat.length)} من مجالات الخدمات الإعلانية.`
-   :'لا توجد أعمال مكتملة مسجلة خلال الفترة المحددة. اختر فترة أخرى أو قم بتحديث حالة الأعمال المكتملة في سجل الأعمال.';
- lines(ctx,intro,1357,372,1250,27,43,2,pal.ink,400);
+   ? `يسرنا مشاركة ملخص إنجازاتنا لصالح ${d.client?.name||'عميلنا'} خلال الفترة المحددة، مع التركيز على حصيلة الأعمال المكتملة.`
+   : 'لا توجد أعمال مكتملة مسجلة خلال الفترة المحددة. اختر فترة أخرى لتجهيز تقرير الإنجازات.';
+ lines(ctx,intro,1357,374,1250,27,43,2,pal.ink,400);
 
- // Two large indicators: neither metric includes anything still open or awaiting review.
- numCard(ctx,737,478,648,'إجمالي الأعمال المنجزة',completed.length,'✓');
- numCard(ctx,62,478,648,'مجالات الخدمات المنفذة',d.cat.length,'▦');
+ roundRect(ctx,62,505,1323,256,20,'#fcf9f7','#e4d6d0');
+ roundRect(ctx,1250,540,92,92,46,'#efe2dd');
+ drawText(ctx,'✓',1296,585,50,pal.green,800,'center');
+ drawText(ctx,'الأعمال المكتملة خلال الفترة',1210,579,35,pal.ink,700);
+ drawText(ctx,fmtNum(completed.length),1320,700,83,pal.wine,800);
+ drawText(ctx,'عملًا منجزًا',1090,699,27,pal.muted,700);
 
- heading(ctx,'تفاصيل الخدمات المنجزة',708);
- let cats=d.cat.slice(0,5),max=Math.max(...cats.map(e=>e[1]),1);
- if(!cats.length){drawText(ctx,'تظهر هنا الخدمات فور تسجيل أعمال مكتملة.',1318,865,25,pal.muted);}
- cats.forEach(([name,n],i)=>{
-   let y=824+i*57;
-   drawText(ctx,truncate(ctx,name,408,25,700),1330,y,25,pal.ink,700);
-   roundRect(ctx,230,y-10,610,18,9,'#eee5df');
-   roundRect(ctx,230+610*(1-n/max),y-10,610*n/max,18,9,i===0?pal.wine:'#a65c6b');
-   drawText(ctx,fmtNum(n),190,y,27,pal.wine,700,'center');
- });
- if(d.cat.length>5)drawText(ctx,`بالإضافة إلى ${fmtNum(d.cat.length-5)} مجالات أخرى`,1325,1090,21,pal.wine,700);
-
- heading(ctx,'أبرز الأعمال التي تم إنجازها',1142);
- // Up to twelve genuinely completed jobs in two clean columns, for quick scanning.
- const selected=completed.slice(0,12);
- selected.forEach((j,i)=>{
-   const right=i<6,colIndex=right?i:i-6;
-   const x=right?1352:670,y=1241+colIndex*62;
-   roundRect(ctx,x-35,y-20,41,41,20,'#e8d9c7');
-   drawText(ctx,String(i+1),x-14,y+1,22,pal.wine,700,'center');
-   drawText(ctx,truncate(ctx,j.title,550,24,500),x-50,y+2,24,pal.ink,500);
-   divider(ctx,right?742:75,y+34,595);
- });
- if(!selected.length){drawText(ctx,'لا توجد إنجازات مكتملة لهذا النطاق الزمني.',1330,1260,25,pal.muted);}
- if(completed.length>12)drawText(ctx,`و${fmtNum(completed.length-12)} أعمال مكتملة أخرى موثّقة في السجل`,1350,1636,21,pal.wine,700);
-
- heading(ctx,'لمسات إضافية على الأعمال المنجزة',1682);
+ heading(ctx,'ملخص الإنجازات',839);
  const note=$('#reportNote').value.trim(),impact=$('#reportImpact').value.trim();
- if(note){
-   drawText(ctx,'تفاصيل الإنجاز',1348,1782,25,pal.wine,700);
-   lines(ctx,note,1169,1782,1086,22,40,2,pal.ink);
- }
+ const summary=note||'نعتز بالأعمال التي أنجزناها خلال الفترة، وبالثقة المتبادلة التي تسهم في استمرار تقديم خدمات إعلانية باهتمام وجودة.';
+ lines(ctx,summary,1325,967,1217,29,49,4,pal.ink,400);
+
  if(impact){
-   drawText(ctx,'المخرجات',1348,1873,25,pal.wine,700);
-   lines(ctx,impact,1200,1873,1117,22,35,1,pal.ink);
+   heading(ctx,'القيمة المقدمة',1232);
+   lines(ctx,impact,1325,1355,1217,27,47,4,pal.ink,400);
  }
- if(!note&&!impact){
-   lines(ctx,'نعتز بثقتكم، ونسعد بمشاركة أبرز الأعمال التي جرى إنجازها لخدمة حضور علامتكم التجارية.',1348,1790,1225,26,46,2,pal.ink);
- }
+
+ divider(ctx,188,1713,1090);
+ drawText(ctx,'شكرًا لثقتكم',1325,1776,36,pal.wine,800);
+ lines(ctx,'نعتز بشراكتنا معكم، ونسعد بأن تكون أعمالنا جزءًا من حضور علامتكم التجارية.',1325,1844,1200,24,42,2,pal.ink,400);
  // Optional completed-work financial totals only; hidden by default.
  if($('#reportFinance').checked){
    let txt=Object.entries(d.totals).map(([cur,t])=>`${cur}: إجمالي المنجز ${currencyFmt(t.price)} / المستلم ${currencyFmt(t.paid)} / المتبقي ${currencyFmt(t.price-t.paid)}`).join('  |  ');
