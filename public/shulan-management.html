@@ -88,7 +88,192 @@
 .task-rail .task-client{font-size:11px;color:#83767b}
 .task-rail .task-actions{display:flex;gap:7px;border-top:1px solid #eee9e8;padding-top:9px;margin-top:9px}
 .task-rail .rail-empty{background:#fff;border:1px dashed #dfd4d4;border-radius:10px}
-</style></head>
+</style><style id="shulan-mobile-compact">
+/* SHULAN MOBILE / DENSE TASK LIST — 2026-10-16
+   Visual/navigation only: client records, task statuses and report logic unchanged. */
+:root{color-scheme:light}
+html{scroll-behavior:smooth}
+body{overflow-x:hidden}
+.task-rail{
+ background:#f8f7f6!important;background-image:none!important;
+ border-right:1px solid #e9e1df;gap:10px;
+}
+.task-rail .rail-head{padding-bottom:10px}
+.task-rail .rail-list{display:flex;flex-direction:column;gap:5px;min-height:0}
+.task-rail .task-item,
+.task-rail .task-item.is-review{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;column-gap:7px;margin:0;padding:7px 8px;
+ border:1px solid #e7e2e1;border-right:2px solid #d3babe;
+ border-radius:9px;background:#fff;
+ box-shadow:0 1px 4px rgba(60,25,35,.035);
+ min-height:49px;
+}
+.task-rail .task-item.is-review{
+ background:#fffaf2;border-color:#ebdcc6;border-right-color:#cc9b50;
+}
+.task-rail .task-copy{min-width:0;display:flex;flex-direction:column;gap:0}
+.task-rail .task-title{
+ font-size:12px;line-height:1.45;font-weight:750;color:#33272c;
+ margin:0;overflow-wrap:anywhere;
+}
+.task-rail .task-client{
+ color:#8a777e;font-size:10px;line-height:1.35;margin:1px 0 0;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.task-rail .task-actions{
+ border:0;margin:0;padding:0;display:flex;align-items:center;
+ justify-content:center;gap:5px;flex-wrap:nowrap;min-width:max-content;
+}
+.task-rail .task-action,
+.task-rail .task-action.review-control,
+.task-rail .task-action.finish-control{
+ display:grid;place-items:center;
+ width:30px;min-width:30px;height:30px;min-height:30px;
+ box-sizing:border-box;border-radius:6px;padding:0;
+ font:800 16px/1 Tahoma,"Segoe UI",Arial,sans-serif;
+ cursor:pointer;user-select:none;
+ transition:background .14s,border-color .14s,transform .14s;
+}
+.task-rail .task-action.review-control{
+ background:#fff8ea;border:1px solid #e8d7b7;color:#976b24;
+}
+.task-rail .task-action.review-control.selected{
+ background:#e5c584;border-color:#caa056;color:#5e4219;
+}
+.task-rail .task-action.finish-control{
+ background:#eaf7ef;border:1px solid #cce7d4;color:#1f754e;
+}
+.task-rail .task-action:active{transform:scale(.94)}
+.task-rail .task-action:focus-visible{
+ outline:2px solid #663246;outline-offset:2px;
+}
+.rail-expand{display:none;border:1px solid #e3d7d6;background:#fff;
+ color:#69283a;padding:9px;border-radius:9px;font-weight:750;cursor:pointer;
+ width:100%;font-size:12px}
+.rail-expand[hidden]{display:none!important}
+@media(min-width:751px){
+ .task-rail{width:270px;flex:0 0 270px;padding:16px 12px 22px}
+ .task-rail .rail-list{min-height:0}
+ .rail-expand{display:none!important}
+}
+@media(max-width:1090px) and (min-width:751px){
+ .task-rail{width:auto;min-height:0;max-height:495px}
+ .task-rail .rail-list{max-height:300px;overflow-y:auto}
+}
+@media(max-width:750px){
+ html,body{max-width:100%;overflow-x:hidden}
+ .app{display:flex;flex-direction:column;min-height:100dvh;padding-bottom:0}
+ .side{
+  order:0;width:100%;height:auto;min-height:0;
+  position:sticky;top:0;z-index:8;display:flex;flex-direction:column;
+  gap:6px;padding:8px 10px 7px;
+  background:#4d1824;box-shadow:0 3px 13px rgba(47,13,26,.15)
+ }
+ .side .brand{padding:0 3px 3px}
+ .side .brandname{font-size:19px;line-height:1.3}
+ .side .brand p,.side .side-foot{display:none}
+ .side .nav{display:flex;flex-direction:row;gap:5px;overflow-x:auto;
+  overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+  padding:0 0 2px;scrollbar-width:none}
+ .side .nav::-webkit-scrollbar{display:none}
+ .side .nav button{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  min-width:63px;width:auto;min-height:46px;flex:1 0 auto;
+  gap:1px;padding:5px 7px;border-radius:8px;
+  font-size:10px;line-height:1.3;white-space:nowrap;text-align:center;
+ }
+ .side .nav .nav-icon{font-size:17px;line-height:1.15}
+ .task-rail{
+  order:1;position:relative;top:auto;flex:0 0 auto;
+  display:flex;flex-direction:column;
+  width:100%;height:auto;min-height:0;max-height:none;
+  overflow:visible;gap:9px;padding:12px 13px;
+  border:0;border-bottom:1px solid #e7dedc;
+  background:#f8f7f6!important;box-shadow:none;
+ }
+ .task-rail .rail-head{padding-bottom:5px;border-bottom:0}
+ .task-rail .rail-head h2{font-size:17px}
+ .task-rail #quickTaskForm{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:7px
+ }
+ .task-rail #quickTaskName{grid-column:1/-1}
+ .task-rail #quickTaskClient{grid-column:1;min-width:0}
+ .task-rail #quickNewClientWrap{grid-column:1/-1}
+ .task-rail .rail-add-row{grid-column:2;min-width:0;
+  grid-template-columns:minmax(0,1fr) 36px}
+ .task-rail #quickTaskForm input,.task-rail #quickTaskForm select,
+ .task-rail #taskRailFilter{min-height:39px;font-size:13px}
+ .task-rail .rail-plus{min-height:39px}
+ .task-rail .rail-list-head{margin-top:0}
+ .task-rail .rail-list{max-height:none;overflow:visible;gap:5px;min-height:0}
+ .task-rail .rail-list:not(.expanded) .task-item:nth-of-type(n+5){display:none}
+ .task-rail .task-item{min-height:47px;padding:7px 9px}
+ .task-rail .task-title{font-size:12.5px}
+ .task-rail .task-client{font-size:10.5px}
+ .task-rail .task-action{width:32px!important;min-width:32px!important;
+  height:32px!important;min-height:32px!important}
+ .task-rail .rail-expand:not([hidden]){display:block}
+ .main{order:2;min-width:0;width:100%;max-width:100%;padding:15px 12px 42px}
+ .topbar{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-bottom:15px}
+ .topbar h1{font-size:20px}
+ .topbar p{font-size:12px;line-height:1.6}
+ .topbar .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .topbar .actions .btn{min-width:0;white-space:normal;font-size:12px;
+  min-height:39px;padding:9px 6px}
+ .grid4{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .metric{padding:12px;border-radius:12px}
+ .metric strong{font-size:23px}
+ .metric small{font-size:11px}
+ .two-col{grid-template-columns:minmax(0,1fr);gap:12px}
+ .panel{min-width:0;border-radius:13px;padding:13px}
+ .panel-head{align-items:flex-start;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+ .panel-head h2{font-size:16px}
+ .panel-head .btn{white-space:normal;padding:8px 10px;font-size:12px}
+ .client-list{grid-template-columns:minmax(0,1fr);gap:10px}
+ .client-card{padding:14px;border-radius:13px;min-width:0}
+ .filterbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;margin-bottom:14px}
+ .filterbar .field{min-width:0!important;max-width:none!important}
+ .filterbar .field:first-child{grid-column:1/-1}
+ .field input,.field select,.field textarea{min-height:41px;font-size:14px}
+ .report-layout{display:block}
+ .report-settings{display:block}
+ .report-settings .field{margin:0 0 10px}
+ .preview-area{margin-top:12px;min-width:0;padding:8px;border-radius:12px}
+ .preview-top{flex-wrap:wrap;gap:8px}
+ .report-toolbar{width:100%;gap:7px}
+ .report-toolbar .btn{flex:1 1 auto}
+ .preview-area canvas{max-width:100%;height:auto}
+ .table-wrap{width:100%;max-width:100%;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;border-radius:9px}
+ .data-table{min-width:610px}
+ .form-grid{display:grid;grid-template-columns:minmax(0,1fr)}
+ .form-grid .full{grid-column:auto}
+ .modal-wrap{padding:10px;align-items:center}
+ .modal{max-height:calc(100dvh - 22px);overflow-y:auto;border-radius:14px;padding:16px}
+ .modal-foot{position:sticky;bottom:-16px;background:#fff;padding:11px 0 3px;
+  margin-top:12px}
+ .toast{left:10px;right:10px;bottom:12px;width:auto;
+  max-width:none;box-sizing:border-box}
+ #cloudGate{padding:10px}
+ .cloud-card{max-height:calc(100dvh - 20px);overflow:auto;padding:18px}
+}
+@media(max-width:359px){
+ .task-rail{padding:10px}
+ .side{padding:7px 8px}
+ .side .nav button{min-width:57px;font-size:9px;padding:5px 4px}
+ .task-rail .task-item{column-gap:5px;padding:6px}
+ .task-rail .task-action{width:30px!important;min-width:30px!important}
+ .main{padding-inline:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ .task-rail .task-action{transition:none}
+}
+</style>
+</head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
   <h2>شعلان | نظام إدارة الأعمال</h2>
@@ -165,6 +350,7 @@
     <span id="railReviewCount" hidden></span>
    </div>
    <div class="rail-list" id="taskRailList" aria-live="polite"></div>
+   <button type="button" id="railExpandTasks" class="rail-expand" aria-expanded="false" hidden>عرض جميع المهام</button>
   </aside>
 </div>
 <div class="modal-wrap" id="modalOverlay"><div class="modal"><h2 id="modalTitle">إضافة</h2><form id="modalForm"><div id="modalFields" class="form-grid"></div><div class="modal-foot"><button class="btn primary" type="submit">حفظ البيانات</button><button class="btn" type="button" id="closeModal">إلغاء</button></div></form></div></div>
@@ -253,6 +439,7 @@ function railSorted(jobs){
  const order={review:0,active:1,pending:2};
  return jobs.sort((a,b)=>(order[a.status]??3)-(order[b.status]??3)||timeSort(a,b));
 }
+let railExpanded=false;
 function renderTaskRail(){
  const selected=$('#taskRailFilter').value||'all';
  const quickSelected=$('#quickTaskClient').value||db.clients[0]?.id||'__new__';
@@ -274,15 +461,29 @@ function renderTaskRail(){
    const c=db.clients.find(c=>c.id===j.clientId);
    const review=j.status==='review';
    return `<article class="task-item ${review?'is-review':''}" data-job-id="${safe(j.id)}">
-      <div class="task-title">${safe(j.title)}</div>
-      <div class="task-client">${safe(c?.name||'عميل غير موجود')}</div>
+      <div class="task-copy">
+        <div class="task-title">${safe(j.title)}</div>
+        <div class="task-client">${safe(c?.name||'عميل غير موجود')}</div>
+      </div>
       <div class="task-actions">
-        <button type="button" class="task-action review-control ${review?'selected':''}" data-rail-action="review" data-id="${safe(j.id)}" aria-pressed="${review}" title="تبديل حالة المراجعة">${review?'✓ ':''}مراجعة</button>
-        <button type="button" class="task-action finish-control" data-rail-action="done" data-id="${safe(j.id)}" title="إنهاء المهمة">انتهت</button>
+        <button type="button" class="task-action review-control ${review?'selected':''}" data-rail-action="review" data-id="${safe(j.id)}" aria-pressed="${review}" aria-label="تحت المراجعة: ${safe(j.title)}" title="تحت المراجعة">${review?'✓':'◷'}</button>
+        <button type="button" class="task-action finish-control" data-rail-action="done" data-id="${safe(j.id)}" aria-label="انتهت المهمة: ${safe(j.title)}" title="انتهت">✓</button>
       </div>
     </article>`;
  }).join(''):'<div class="rail-empty">لا توجد مهام</div>';
+ const expand=$('#railExpandTasks');
+ expand.hidden=visible.length<=4;
+ expand.textContent=railExpanded?'عرض أقل':'عرض جميع المهام ('+fmtNum(visible.length)+')';
+ expand.setAttribute('aria-expanded',String(railExpanded));
+ $('#taskRailList').classList.toggle('expanded',railExpanded);
 }
+$('#railExpandTasks').addEventListener('click',()=>{
+ railExpanded=!railExpanded;
+ const btn=$('#railExpandTasks');
+ btn.textContent=railExpanded?'عرض أقل':'عرض جميع المهام';
+ btn.setAttribute('aria-expanded',String(railExpanded));
+ $('#taskRailList').classList.toggle('expanded',railExpanded);
+});
 $('#quickTaskClient').addEventListener('change',()=>{
  const isNew=$('#quickTaskClient').value==='__new__';
  $('#quickNewClientWrap').classList.toggle('hidden',!isNew);
