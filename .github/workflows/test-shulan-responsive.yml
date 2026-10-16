@@ -1,0 +1,67 @@
+name: Test Shulan responsive experience
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-responsive.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  responsive-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install headless browser driver
+        run: npm install --prefix /tmp/shulan-qa puppeteer-core@24 --no-audit --no-fund
+      - name: Verify mobile and desktop layout on live site
+        env:
+          NODE_PATH: /tmp/shulan-qa/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs');
+          const binary=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium','/usr/bin/chromium-browser'].find(p=>fs.existsSync(p));
+          if(!binary)throw Error('Chrome is not installed');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:binary,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage();
+              await page.goto('https://shalan-agency.onrender.com/shulan-management.html',{waitUntil:'domcontentloaded',timeout:75000});
+              for(const width of [320,390,820,1440]){
+                await page.setViewport({width,height:900,deviceScaleFactor:1,isMobile:width<=390,hasTouch:width<=390});
+                const result=await page.evaluate(()=>{
+                  const list=document.querySelector('#taskRailList');
+                  list.innerHTML=Array.from({length:6},(_,i)=>'<article class="task-item"><div class="task-copy"><div class="task-title">مهمة تجريبية رقم '+(i+1)+'</div><div class="task-client">عميل تجريبي</div></div><div class="task-actions"><button class="task-action review-control" title="تحت المراجعة">◷</button><button class="task-action finish-control" title="انتهت">✓</button></div></article>').join('');
+                  const box=list.querySelector('.task-item');
+                  const controls=box.querySelectorAll('button');
+                  const shown=[...list.querySelectorAll('.task-item')].filter(n=>getComputedStyle(n).display!=='none').length;
+                  const rails=document.querySelector('.task-rail');
+                  const main=document.querySelector('.main');
+                  const nav=document.querySelector('.side');
+                  return {
+                    screen:innerWidth,docWidth:document.documentElement.scrollWidth,
+                    cardLayout:getComputedStyle(box).display,
+                    cardWidth:Math.round(box.getBoundingClientRect().width),
+                    reviewWidth:Math.round(controls[0].getBoundingClientRect().width),
+                    doneWidth:Math.round(controls[1].getBoundingClientRect().width),
+                    visibleTasks:shown,
+                    railWidth:Math.round(rails.getBoundingClientRect().width),
+                    railTop:Math.round(rails.getBoundingClientRect().top),
+                    mainTop:Math.round(main.getBoundingClientRect().top),
+                    navTop:Math.round(nav.getBoundingClientRect().top),
+                    navOverflow:getComputedStyle(document.querySelector('.nav')).overflowX
+                  };
+                });
+                console.log('RESPONSIVE TEST',JSON.stringify(result));
+                if(result.docWidth>width+3)throw Error('Horizontal page overflow on '+width);
+                if(result.cardLayout!=='grid')throw Error('Compact task row is not a grid at '+width);
+                if(result.reviewWidth>36||result.doneWidth>36||result.reviewWidth<28)throw Error('Task controls are not compact squares at '+width);
+                if(width<=390 && result.visibleTasks!==4)throw Error('Mobile task list not capped to four at '+width);
+                if(width>750 && result.visibleTasks!==6)throw Error('Desktop tasks hidden at '+width);
+                if(width<=390 && result.railTop>result.mainTop)throw Error('Mobile rail appears after main content');
+              }
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
