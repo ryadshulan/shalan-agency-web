@@ -1,0 +1,99 @@
+name: Test Shulan client advances ledger
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-cash-ledger.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser driver
+        run: npm install --prefix /tmp/shulan-ledger-test puppeteer-core@24 --no-audit --no-fund
+      - name: Test ledger calculations, repeated advances, reimbursements and PDF
+        env:
+          NODE_PATH: /tmp/shulan-ledger-test/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs'),path=require('path');
+          const binary=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(fs.existsSync);
+          if(!binary)throw Error('Chrome unavailable');
+          (async()=>{
+           const browser=await puppeteer.launch({headless:true,executablePath:binary,args:['--no-sandbox','--disable-dev-shm-usage']});
+           try{
+            const page=await browser.newPage(),errors=[];
+            page.on('pageerror',e=>errors.push(e.message));
+            await page.goto('file://'+path.resolve('public/shulan-management.html'),{waitUntil:'domcontentloaded',timeout:60000});
+            await page.waitForFunction(()=>typeof getReportData==='function'&&typeof cashStatement==='function'&&typeof createReportPdf==='function'&&bg.complete&&bg.naturalWidth>0,{timeout:45000});
+            const result=await page.evaluate(async()=>{
+              db={clients:[{id:'a',name:'عميل تجريبي',phone:'',details:''},{id:'b',name:'عميل آخر',phone:'',details:''}],
+              jobs:[{id:'j1',clientId:'a',title:'تنفيذ مواد دعائية',date:'2026-10-04',status:'pending',category:''}],
+              cashMovements:[],reportNotes:{}};
+              function move(id,clientId,jobId,kind,date,amount,currency='ر.ي'){
+                db.cashMovements.push({id,clientId,jobId,kind,date,amount,currency,note:'اختبار',createdAt:'2026-10-01T00:00:00Z'});
+              }
+              move('old','a','j1','advance','2026-09-09',1000);
+              move('first','a','j1','advance','2026-10-03',400);
+              move('second','a','j1','advance','2026-10-09',125);
+              move('repayment','a','j1','repayment','2026-10-15',200);
+              move('usd','a','j1','advance','2026-10-03',30,'$');
+              move('other','b','','advance','2026-10-05',9999);
+              const before=cashStatement('a','2026-10-01','2026-10-31');
+              const ry=before.totals.find(x=>x.currency==='ر.ي'),usd=before.totals.find(x=>x.currency==='$');
+              renderAll();
+              document.querySelector('#cashClient').value='a';
+              document.querySelector('#cashClient').dispatchEvent(new Event('change'));
+              document.querySelector('#cashJob').value='j1';
+              document.querySelector('#cashKind').value='advance';
+              document.querySelector('#cashDate').value='2026-10-25';
+              document.querySelector('#cashAmount').value='75';
+              document.querySelector('#cashCurrency').value='ر.ي';
+              document.querySelector('#cashNote').value='تكرار دفعة لنفس العمل';
+              cloudReady=true; // Test-only. cloudCurrentUserId remains null; no network writes.
+              document.querySelector('#cashForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+              const after=cashStatement('a','2026-10-01','2026-10-31');
+              const next=after.totals.find(x=>x.currency==='ر.ي');
+              const entryCount=after.movements.length;
+              for(let i=0;i<17;i++)move('bulk'+i,'a','j1','advance','2026-10-22',1);
+              renderAll();
+              document.querySelector('#reportClient').value='a';
+              document.querySelector('#reportFrom').value='2026-10-01';
+              document.querySelector('#reportTo').value='2026-10-31';
+              loadReportText();renderReport();
+              const report=getReportData();
+              const pdf=createReportPdf();
+              const doc=new TextDecoder('latin1').decode(await pdf.arrayBuffer());
+              return {ledgerArray:db.cashMovements.length===24,
+                ryOpening:ry.opening,ryAdvances:ry.advances,ryReceipts:ry.received,ryClosing:ry.closing,
+                usdBalance:usd.closing,excludedOtherCustomer:!before.totals.some(x=>x.closing===9999),
+                newMovementSaved:next.advances===600&&next.closing===1400,
+                repeatCount:entryCount===5,
+                isCashOnlyReport:reportHasContent()&&report.jobs.length===0,
+                pdfMime:pdf.type,pdfBytes:pdf.size,
+                pdfPages:(doc.match(/\/Type \/Page \/Parent/g)||[]).length,
+                cashPreview:!document.querySelector('#cashReportPreview').hidden,
+                financeNav:!!document.querySelector('[data-page="advances"]'),
+                cashEmptyUI:!!document.querySelector('#cashEntries'),
+                originalWorkPreserved:db.jobs[0].title==='تنفيذ مواد دعائية'};
+            });
+            console.log('LEDGER QA',JSON.stringify(result));
+            if(errors.length)throw Error('JavaScript errors: '+errors.join(', '));
+            const assert=(c,m)=>{if(!c)throw Error(m)};
+            assert(result.ledgerArray,'Incorrect transaction count');
+            assert(result.ryOpening===1000&&result.ryAdvances===525&&result.ryReceipts===200&&result.ryClosing===1325,'Opening/period/closing balances wrong');
+            assert(result.usdBalance===30&&result.excludedOtherCustomer,'Client/currency isolation incorrect');
+            assert(result.newMovementSaved&&result.repeatCount,'Repeated entries or form submission failed');
+            assert(result.isCashOnlyReport,'Cash-only reports are blocked');
+            assert(result.pdfMime==='application/pdf'&&result.pdfBytes>50000,'PDF missing');
+            assert(result.pdfPages===3,'Multi-page PDF count wrong');
+            assert(result.cashPreview&&result.financeNav&&result.originalWorkPreserved,'UI or previous records broken');
+           }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
