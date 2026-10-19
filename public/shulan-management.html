@@ -642,7 +642,38 @@ $('#cashForm').addEventListener('submit',e=>{
        amount=Number($('#cashAmount').value),currency=$('#cashCurrency').value,
        note=$('#cashNote').value.trim(),jobId=$('#cashJob').value;
  if(!db.clients.some(c=>c.id===clientId)){alertToast('حدد العميل.');return;}
- if(!['advance','repayment'].includes(kind)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!['ر.ي','ر.س','
+ if(!['advance','repayment'].includes(kind)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!['ر.ي','ر.س','$'].includes(currency)||!Number.isFinite(amount)||amount<=0||Math.abs(amount*100-Math.round(amount*100))>0.00001){alertToast('أدخل مبلغًا موجبًا وتاريخًا وعملة صحيحة.');return;}
+ if(amount>100000000000){alertToast('المبلغ كبير جدًا، راجع القيمة.');return;}
+ if(jobId&&!db.jobs.some(j=>j.id===jobId&&j.clientId===clientId)){alertToast('العمل المختار لا يتبع العميل.');return;}
+ const old=cashList().find(m=>m.id===cashEditingId);
+ const now=new Date().toISOString();
+ const entry={id:old?.id||uid(),clientId,jobId,kind,date,amount:moneyRound(amount),currency,note,createdAt:old?.createdAt||now,updatedAt:now};
+ if(old)Object.assign(old,entry);else cashList().push(entry);
+ save();renderAll();clearCashForm();$('#cashFilterClient').value=clientId;renderCash();alertToast('تم تسجيل الحركة، جارٍ حفظها في السحابة.');
+});
+document.addEventListener('click',e=>{
+ const btn=e.target.closest('[data-cash-action]');if(!btn)return;
+ const m=cashList().find(x=>x.id===btn.dataset.id);if(!m)return;
+ if(btn.dataset.cashAction==='delete'){
+  if(!cloudReady)return;
+  if(!confirm('حذف هذه الحركة المالية من كشف العميل؟ لا يمكن استعادتها إلا من نسخة احتياطية.'))return;
+  db.cashMovements=db.cashMovements.filter(x=>x.id!==m.id);
+  if(cashEditingId===m.id)clearCashForm();
+  save();renderAll();alertToast('تم حذف الحركة بعد التأكيد.');return;
+ }
+ if(btn.dataset.cashAction==='edit'){
+  cashEditingId=m.id;
+  $('#cashClient').value=m.clientId;cashJobsOptions(m.jobId);
+  $('#cashKind').value=m.kind;$('#cashDate').value=m.date;$('#cashCurrency').value=m.currency;
+  $('#cashAmount').value=m.amount;$('#cashNote').value=m.note||'';
+  $('#cashSave').textContent='حفظ التعديل';$('#cashCancel').hidden=false;
+  $('#cashForm').scrollIntoView({block:'start',behavior:'smooth'});
+ }
+});
+$('#cashDate').value=localToday();
+$('#cashFrom').value=monthStart();$('#cashTo').value=localToday();
+
+const bg=new Image();bg.src=bgUrl;bg.onload=()=>renderReport();
 function reportKey(){return ($('#reportClient').value||'')+'|'+($('#reportFrom').value||'')+'|'+($('#reportTo').value||'');}
 function loadReportText(){let o=db.reportNotes[reportKey()]||{};$('#reportNote').value=o.note||'';$('#reportImpact').value=o.impact||'';$('#reportFinance').checked=!!o.finance;}
 function saveReportText(){let key=reportKey();db.reportNotes[key]={...(db.reportNotes[key]||{}),note:$('#reportNote').value,impact:$('#reportImpact').value,finance:$('#reportFinance').checked};save();renderReport();}
@@ -825,7 +856,7 @@ $('#shareWhatsapp').onclick=async()=>{try{if(!reportHasContent()){alertToast('ل
  }catch(e){if(e.name!=='AbortError'){alertToast('تعذّر مشاركة التقرير: '+e.message);console.error(e);}}};
 function dataFilename(suffix){return 'شعلان_'+suffix+'_'+localToday();}
 $('#exportJson').onclick=()=>{let json=JSON.stringify({...db,exportedAt:new Date().toISOString()},null,2);downloadBlob(new Blob([json],{type:'application/json;charset=utf-8'}),dataFilename('نسخة_احتياطية')+'.json');alertToast('تم حفظ النسخة الاحتياطية.');};
-$('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع بيانات العملاء والأعمال والحركات المالية ببيانات النسخة المختارة. تأكد من أن النسخة تحتوي على سجل المبالغ الحالي. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{},cashMovements:Array.isArray(o.cashMovements)?o.cashMovements:[]};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
+$('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع بيانات العملاء والأعمال والحركات المالية ببيانات النسخة المختارة. تأكد من وجود سجل المبالغ الحالي في النسخة. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{},cashMovements:Array.isArray(o.cashMovements)?o.cashMovements:[]};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
 $('#exportCsv').onclick=()=>{let cols=['اسم العميل','تاريخ','اسم العمل','المشروع','الخدمة','الحالة','موعد التسليم','وقت الإكمال','الوصف','العملة','السعر','التكلفة','المستلم'];let data=[cols,...db.jobs.map(j=>[db.clients.find(c=>c.id===j.clientId)?.name||'',j.date,j.title,j.project,j.category,statustext[j.status]||'',j.dueDate||'',j.completedAt||'',j.description,j.currency,j.price,j.cost,j.paid])];let csv='\ufeff'+data.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),dataFilename('الأعمال')+'.csv');alertToast('تم تصدير جميع الأعمال إلى CSV.');};
 $('#dashFrom').value=monthStart();$('#dashTo').value=localToday();$('#reportFrom').value=monthStart();$('#reportTo').value=localToday();save();renderAll();loadReportText();renderReport();
 
@@ -939,257 +970,6 @@ $('#cloudImportLocal').onclick=async()=>{
  const clients=oldLocalData.clients.length,jobs=oldLocalData.jobs.length;
  if(!confirm(`هل تريد نقل ${clients} عميل و${jobs} عمل من الإصدار المحلي القديم إلى حسابك السحابي؟ احتفظ بنسخة JSON أصلية أولًا.`))return;
  db=JSON.parse(JSON.stringify({clients:oldLocalData.clients,jobs:oldLocalData.jobs,reportNotes:oldLocalData.reportNotes||{},cashMovements:Array.isArray(oldLocalData.cashMovements)?oldLocalData.cashMovements:[]}));
- save();renderAll();loadReportText();alertToast('بدأ نقل البيانات إلى السحابة. انتظر رسالة تأكيد الحفظ.');
-};
-async function bootstrapCloud(){
- if(!SHULAN_SUPABASE_URL.startsWith('https://') || !SHULAN_SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')){
-  $('#cloudGateDesc').textContent='نسخة جاهزة للربط، لكن مشروع Supabase ومفتاحه العام لم يُضبطا بعد. لن تعمل المزامنة قبل إكمال إنشاء المشروع.';
-  cloudMessage.textContent='الربط قيد الإعداد. الرجاء استخدام الإصدار المحلي حتى اكتماله.';
-  ['cloudEmail','cloudPassword','cloudSignIn','cloudSignUp'].forEach(id=>$('#'+id).disabled=true);
-  return;
- }
- if(!window.supabase?.createClient){cloudMessage.textContent='تعذّر تحميل مكتبة Supabase. تأكد من اتصال الإنترنت ثم أعد فتح الملف.';return;}
- cloudApi=window.supabase.createClient(SHULAN_SUPABASE_URL,SHULAN_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
- try{await openCloudWorkspace();}catch(e){cloudMessage.textContent='تعذّر الاتصال بـ Supabase: '+e.message;}
-}
-bootstrapCloud();
-// ---- End of cloud storage adapter -------------------------------------------------
-
-</script>
-</body>
-</html>].includes(currency)||!Number.isFinite(amount)||amount<=0||Math.abs(amount*100-Math.round(amount*100))>0.00001){alertToast('أدخل مبلغًا موجبًا وتاريخًا وعملة صحيحة.');return;}
- if(amount>100000000000){alertToast('المبلغ كبير جدًا، راجع القيمة.');return;}
- if(jobId&&!db.jobs.some(j=>j.id===jobId&&j.clientId===clientId)){alertToast('العمل المختار لا يتبع العميل.');return;}
- const old=cashList().find(m=>m.id===cashEditingId);
- const now=new Date().toISOString();
- const entry={id:old?.id||uid(),clientId,jobId,kind,date,amount:moneyRound(amount),currency,note,createdAt:old?.createdAt||now,updatedAt:now};
- if(old)Object.assign(old,entry);else cashList().push(entry);
- save();renderAll();clearCashForm();$('#cashFilterClient').value=clientId;renderCash();alertToast('تم تسجيل الحركة، جارٍ حفظها في السحابة.');
-});
-document.addEventListener('click',e=>{
- const btn=e.target.closest('[data-cash-action]');if(!btn)return;
- const m=cashList().find(x=>x.id===btn.dataset.id);if(!m)return;
- if(btn.dataset.cashAction==='delete'){
-  if(!cloudReady)return;
-  if(!confirm('حذف هذه الحركة المالية من كشف العميل؟ لا يمكن استعادتها إلا من نسخة احتياطية.'))return;
-  db.cashMovements=db.cashMovements.filter(x=>x.id!==m.id);
-  if(cashEditingId===m.id)clearCashForm();
-  save();renderAll();alertToast('تم حذف الحركة بعد التأكيد.');return;
- }
- if(btn.dataset.cashAction==='edit'){
-  cashEditingId=m.id;
-  $('#cashClient').value=m.clientId;cashJobsOptions(m.jobId);
-  $('#cashKind').value=m.kind;$('#cashDate').value=m.date;$('#cashCurrency').value=m.currency;
-  $('#cashAmount').value=m.amount;$('#cashNote').value=m.note||'';
-  $('#cashSave').textContent='حفظ التعديل';$('#cashCancel').hidden=false;
-  $('#cashForm').scrollIntoView({block:'start',behavior:'smooth'});
- }
-});
-$('#cashDate').value=localToday();
-$('#cashFrom').value=monthStart();$('#cashTo').value=localToday();
-
-const bg=new Image();bg.src=bgUrl;bg.onload=()=>renderReport();
-function reportKey(){return ($('#reportClient').value||'')+'|'+($('#reportFrom').value||'')+'|'+($('#reportTo').value||'');}
-function loadReportText(){let o=db.reportNotes[reportKey()]||{};$('#reportNote').value=o.note||'';$('#reportImpact').value=o.impact||'';$('#reportFinance').checked=!!o.finance;}
-function saveReportText(){let key=reportKey();db.reportNotes[key]={...(db.reportNotes[key]||{}),note:$('#reportNote').value,impact:$('#reportImpact').value,finance:$('#reportFinance').checked};save();renderReport();}
-$('#reportClient').addEventListener('change',()=>{loadReportText();renderReport();});['reportFrom','reportTo'].forEach(id=>$('#'+id).addEventListener('change',()=>{loadReportText();renderReport();}));['reportNote','reportImpact'].forEach(id=>$('#'+id).addEventListener('input',saveReportText));$('#reportFinance').addEventListener('change',saveReportText);
-const pal={wine:'#661a2a',wine2:'#90384b',ink:'#27232a',muted:'#766e72',beige:'#e9d9c7',light:'#f9f5f2',line:'#e8dad4',white:'#ffffff',green:'#177c5b'};
-// Client-facing report: only completed tasks appear in statistics, categories, item lists and optional financial values.
-// Keep this distinct from internal management data; unfinished tasks remain safely in db.jobs.
-function getReportData(){
- let cid=$('#reportClient').value;
- let c=db.clients.find(x=>x.id===cid);
- let jobs=filteredJobs(cid,$('#reportFrom').value,$('#reportTo').value).filter(j=>j.status==='done').sort(timeSort);
- let cat={};jobs.forEach(j=>cat[j.category||'خدمات أخرى']=(cat[j.category||'خدمات أخرى']||0)+1);
- let projects=[...new Set(jobs.map(j=>String(j.project||'').trim()).filter(Boolean))];
- let totals={};for(const j of jobs){let k=j.currency||'ر.ي';totals[k]??={price:0,paid:0,cost:0};totals[k].price+=Number(j.price)||0;totals[k].paid+=Number(j.paid)||0;totals[k].cost+=Number(j.cost)||0;}
- return {client:c,jobs,projects,cat:Object.entries(cat).sort((a,b)=>b[1]-a[1]),totals};
-}
-function roundRect(ctx,x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.lineWidth=2;ctx.strokeStyle=stroke;ctx.stroke();}}
-function drawText(ctx,str,x,y,px=25,color=pal.ink,weight=400,align='right'){ctx.save();ctx.font=`${weight} ${px}px Tahoma, "Segoe UI", Arial, sans-serif`;ctx.textBaseline='middle';ctx.direction='rtl';ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(String(str),x,y);ctx.restore();}
-function truncate(ctx,str,maxW,px=24,weight=400){let s=String(str||'').replace(/\s+/g,' ').trim();ctx.save();ctx.font=`${weight} ${px}px Tahoma, "Segoe UI", Arial, sans-serif`;while(s&&ctx.measureText(s).width>maxW)s=s.slice(0,-1);ctx.restore();return s.length<String(str||'').trim().length?s.trim()+'…':s;}
-function divider(ctx,x,y,w){ctx.fillStyle=pal.line;ctx.fillRect(x,y,w,2);}
-function lines(ctx,value,x,startY,maxW,sz=25,lh=42,maxLines=3,color=pal.ink,weight=400){let text=String(value||'').replace(/[\r\t]/g,' ').trim();if(!text)return startY;let segments=text.split('\n');let result=[];ctx.save();ctx.font=`${weight} ${sz}px Tahoma, "Segoe UI", Arial, sans-serif`;for(let segment of segments){let words=segment.split(' '),line='';for(const word of words){if(!word)continue;let proposed=line?line+' '+word:word;if(ctx.measureText(proposed).width<=maxW||!line){line=proposed;}else{result.push(line);line=word;}}if(line)result.push(line);}ctx.restore();if(result.length>maxLines){result=result.slice(0,maxLines);result[maxLines-1]=truncate(ctx,result[maxLines-1],maxW-30,sz,weight);}
- for(let i=0;i<result.length;i++)drawText(ctx,result[i],x,startY+i*lh,sz,color,weight);return startY+result.length*lh;}
-function heading(ctx,label,y){roundRect(ctx,62,y,1323,67,13,'#f4ece9');roundRect(ctx,1322,y+9,49,49,10,pal.wine);drawText(ctx,'▤',1346,y+33,27,pal.white,700,'center');drawText(ctx,label,1305,y+35,32,pal.wine,700);}
-function numCard(ctx,x,y,w,title,num,glyph){roundRect(ctx,x,y,w,177,15,'#fcfaf8','#e5d7d0');roundRect(ctx,x+20,y+25,71,71,36,'#f1e5dc');drawText(ctx,glyph,x+55,y+62,36,pal.wine,700,'center');drawText(ctx,String(num),x+w-22,y+72,64,pal.wine,800);drawText(ctx,title,x+w-22,y+129,26,pal.ink,700);}
-function pdfRange(a,b){const parse=x=>{let [y,m,d]=String(x||'').split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:x};return `${parse(a)} - ${parse(b)}`;}
-function reportCanvasDraw(canvas,scale=1){
- const W=1448,H=2048;
- canvas.width=W*scale;canvas.height=H*scale;
- let ctx=canvas.getContext('2d');ctx.setTransform(scale,0,0,scale,0,0);
- ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
- if(bg.complete&&bg.naturalWidth)ctx.drawImage(bg,0,0,W,H);
- const d=getReportData(),completed=d.jobs;
- // Preserve the original official letterhead and insert live details in the cleared header area.
- drawText(ctx,'تقرير الإنجازات الشهرية',385,70,32,'#f8e8d8',800);
- drawText(ctx,truncate(ctx,d.client?.name||'اختر عميلًا',365,31,800),385,117,31,'#f8e8d8',800);
- drawText(ctx,pdfRange($('#reportFrom').value,$('#reportTo').value),385,166,27,'#f8e8d8',700);
-
- drawText(ctx,'ملخص الأعمال المنجزة',1368,288,43,pal.wine,800);
- roundRect(ctx,1064,324,304,5,2,pal.wine2);
-
- // Concise client report: show completed count, without individual task titles or service types.
- const intro=completed.length
-   ? `يسرنا مشاركة ملخص إنجازاتنا لصالح ${d.client?.name||'عميلنا'} خلال الفترة المحددة، مع التركيز على حصيلة الأعمال المكتملة.`
-   : 'لا توجد أعمال مكتملة مسجلة خلال الفترة المحددة. اختر فترة أخرى لتجهيز تقرير الإنجازات.';
- lines(ctx,intro,1357,374,1250,27,43,2,pal.ink,400);
-
- roundRect(ctx,62,505,1323,256,20,'#fcf9f7','#e4d6d0');
- roundRect(ctx,1250,540,92,92,46,'#efe2dd');
- drawText(ctx,'✓',1296,585,50,pal.green,800,'center');
- drawText(ctx,'الأعمال المكتملة خلال الفترة',1210,579,35,pal.ink,700);
- drawText(ctx,fmtNum(completed.length),1320,700,83,pal.wine,800);
- drawText(ctx,'عملًا منجزًا',1090,699,27,pal.muted,700);
-
- heading(ctx,'ملخص الإنجازات',839);
- const note=$('#reportNote').value.trim(),impact=$('#reportImpact').value.trim();
- const summary=note||'نعتز بالأعمال التي أنجزناها خلال الفترة، وبالثقة المتبادلة التي تسهم في استمرار تقديم خدمات إعلانية باهتمام وجودة.';
- lines(ctx,summary,1325,967,1217,29,49,4,pal.ink,400);
-
- if(impact){
-   heading(ctx,'القيمة المقدمة',1232);
-   lines(ctx,impact,1325,1355,1217,27,47,4,pal.ink,400);
- }
-
- divider(ctx,188,1713,1090);
- drawText(ctx,'شكرًا لثقتكم',1325,1776,36,pal.wine,800);
- lines(ctx,'نعتز بشراكتنا معكم، ونسعد بأن تكون أعمالنا جزءًا من حضور علامتكم التجارية.',1325,1844,1200,24,42,2,pal.ink,400);
- // Optional completed-work financial totals only; hidden by default.
- if($('#reportFinance').checked){
-   let txt=Object.entries(d.totals).map(([cur,t])=>`${cur}: إجمالي المنجز ${currencyFmt(t.price)} / المستلم ${currencyFmt(t.paid)} / المتبقي ${currencyFmt(t.price-t.paid)}`).join('  |  ');
-   if(txt)drawText(ctx,truncate(ctx,txt,1250,19,700),1356,1954,19,pal.wine,700);
- }
- return canvas;
-}
-function renderReport(){if(!bg.complete||!bg.naturalWidth)return;let c=$('#reportCanvas');if(!c)return;reportCanvasDraw(c,1);}
-function asBytes(s){return new TextEncoder().encode(s);}
-function buildPdf(jpegBytes,w,h){let nodes=[],len=0,offsets=[0];function add(data){if(typeof data==='string')data=asBytes(data);nodes.push(data);len+=data.length;}function obj(num,parts){offsets[num]=len;add(`${num} 0 obj\n`);for(let p of parts)add(p);add('\nendobj\n');}
- add('%PDF-1.4\n%\xff\xff\xff\xff\n');obj(1,['<< /Type /Catalog /Pages 2 0 R >>']);obj(2,['<< /Type /Pages /Kids [3 0 R] /Count 1 >>']);obj(3,['<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>']);let commands='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q\n';obj(4,[`<< /Length ${commands.length} >>\nstream\n${commands}endstream`]);offsets[5]=len;add(`5 0 obj\n<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);add(jpegBytes);add('\nendstream\nendobj\n');let xoff=len;add('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)add(String(offsets[i]).padStart(10,'0')+' 00000 n \n');add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xoff}\n%%EOF`);let out=new Uint8Array(len),pos=0;for(let b of nodes){out.set(b,pos);pos+=b.length;}return new Blob([out],{type:'application/pdf'});}
-function createReportPdf(){if(!bg.complete||!bg.naturalWidth)throw new Error('لم يكتمل تحميل ورقة التقرير');let canvas=document.createElement('canvas');reportCanvasDraw(canvas,2);let base64=canvas.toDataURL('image/jpeg',.91).split(',')[1];let raw=atob(base64),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return buildPdf(bytes,canvas.width,canvas.height);}
-function filename(){let c=db.clients.find(c=>c.id===$('#reportClient').value);return `تقرير_${(c?.name||'عميل').replace(/[\\/:*?"<>|]/g,'_')}_${$('#reportFrom').value}_${$('#reportTo').value}.pdf`;}
-function downloadBlob(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),9000);}
-$('#downloadPdf').onclick=()=>{try{if(!getReportData().jobs.length){alertToast('لا توجد أعمال مكتملة في الفترة المحددة. اختر فترة أخرى قبل إصدار التقرير.');return;}let pdf=createReportPdf();downloadBlob(pdf,filename());alertToast('تم تجهيز التقرير PDF على ورقتك الرسمية.');}catch(e){alertToast('تعذّر تجهيز PDF: '+e.message);console.error(e);}};
-$('#shareWhatsapp').onclick=async()=>{try{if(!getReportData().jobs.length){alertToast('لا توجد أعمال مكتملة في الفترة المحددة لمشاركتها.');return;}let pdf=createReportPdf();let name=filename(),file=new File([pdf],name,{type:'application/pdf'});let c=db.clients.find(c=>c.id===$('#reportClient').value);let msg=`مرحبًا، يسعدنا مشاركتكم ملخص الإنجازات المكتملة للفترة ${pdfRange($('#reportFrom').value,$('#reportTo').value)}. مرفق تقرير الأداء الخاص بكم.\nمع تحيات شعلان للدعاية والإعلان.`;
- if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:msg,title:name});return;}
- downloadBlob(pdf,name);let phone=String(c?.phone||'').replace(/\D/g,'');let url='https://wa.me/'+phone+'?text='+encodeURIComponent(msg);window.open(url,'_blank','noopener');alertToast('تم تنزيل PDF وفتح واتساب. أرفق الملف في المحادثة لإرساله.');
- }catch(e){if(e.name!=='AbortError'){alertToast('تعذّر مشاركة التقرير: '+e.message);console.error(e);}}};
-function dataFilename(suffix){return 'شعلان_'+suffix+'_'+localToday();}
-$('#exportJson').onclick=()=>{let json=JSON.stringify({...db,exportedAt:new Date().toISOString()},null,2);downloadBlob(new Blob([json],{type:'application/json;charset=utf-8'}),dataFilename('نسخة_احتياطية')+'.json');alertToast('تم حفظ النسخة الاحتياطية.');};
-$('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع البيانات المحلية ببيانات النسخة المختارة. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{},cashMovements:Array.isArray(o.cashMovements)?o.cashMovements:[]};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
-$('#exportCsv').onclick=()=>{let cols=['اسم العميل','تاريخ','اسم العمل','المشروع','الخدمة','الحالة','موعد التسليم','وقت الإكمال','الوصف','العملة','السعر','التكلفة','المستلم'];let data=[cols,...db.jobs.map(j=>[db.clients.find(c=>c.id===j.clientId)?.name||'',j.date,j.title,j.project,j.category,statustext[j.status]||'',j.dueDate||'',j.completedAt||'',j.description,j.currency,j.price,j.cost,j.paid])];let csv='\ufeff'+data.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),dataFilename('الأعمال')+'.csv');alertToast('تم تصدير جميع الأعمال إلى CSV.');};
-$('#dashFrom').value=monthStart();$('#dashTo').value=localToday();$('#reportFrom').value=monthStart();$('#reportTo').value=localToday();save();renderAll();loadReportText();renderReport();
-
-
-// ---- Shulan cloud storage adapter --------------------------------------------------
-// Public keys are safe in a browser ONLY because Row Level Security (RLS) is enforced.
-// Never paste service_role or secret keys here.
-const SHULAN_SUPABASE_URL='https://lfngwikweuqunutiacrr.supabase.co';
-const SHULAN_SUPABASE_PUBLISHABLE_KEY='sb_publishable_sAsipzltAnfMgVHw4sGPyA_Usavjn0C';
-let cloudApi=null,cloudSession=null,cloudReady=false,cloudSaving=false,cloudPending=null,cloudCurrentUserId=null;
-const oldLocalData=(()=>{try{return JSON.parse(localStorage.getItem(storageKey));}catch{return null}})();
-const cloudGate=$('#cloudGate'),cloudMessage=$('#cloudAuthMessage');
-function statusCloud(text,isError=false,retry=false){
- const el=$('#cloudBar');el.style.display=cloudReady?'flex':'none';el.className=isError?'bad':'good';
- $('#cloudBarText').textContent=text;$('#cloudSaveState').textContent=text;
- $('#cloudRetry').style.display=retry?'inline-block':'none';
-}
-function unsyncedKey(){return 'shulan_cloud_unsynced_'+cloudCurrentUserId;}
-function cloudValidPayload(payload){
- return payload && typeof payload==='object' && Array.isArray(payload.clients) && Array.isArray(payload.jobs) &&
- payload.clients.every(c=>c&&typeof c.id==='string'&&typeof c.name==='string') &&
- payload.jobs.every(j=>j&&typeof j.id==='string'&&typeof j.clientId==='string'&&typeof j.title==='string');
-}
-// Replaces the old browser-only saving function. Every edit is queued and eventually persisted remotely.
-// If offline, a temporary recovery copy is kept locally and remains visible as UNSYNCED.
-function enqueueCloudSave(){
- if(!cloudReady||!cloudCurrentUserId){return;}
- const snapshot=JSON.parse(JSON.stringify(db));
- cloudPending=snapshot;
- try{localStorage.setItem(unsyncedKey(),JSON.stringify(snapshot));}catch(e){statusCloud('تحذير: لا توجد مساحة للتخزين المؤقت. صدّر نسخة احتياطية.',true,true);}
- statusCloud('هناك تعديلات يجري حفظها في السحابة…');
- if(!cloudSaving)flushCloudQueue();
-}
-save=enqueueCloudSave;
-async function flushCloudQueue(){
- if(!cloudReady||!cloudSession||cloudSaving||!cloudPending)return;
- cloudSaving=true;
- while(cloudPending && cloudReady){
-  const target=cloudPending; cloudPending=null;
-  try{
-   const {error}=await cloudApi.from('shulan_workspaces').upsert({user_id:cloudCurrentUserId,payload:target,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-   if(error)throw error;
-   if(!cloudPending){try{localStorage.removeItem(unsyncedKey());}catch(e){}statusCloud('✓ جميع التعديلات محفوظة على Supabase');}
-  }catch(e){cloudPending=cloudPending||target;statusCloud('تعذّر حفظ التعديلات. احتفظ بالصفحة مفتوحة وأعد المحاولة: '+e.message,true,true);break;}
- }
- cloudSaving=false;
-}
-$('#cloudRetry').onclick=()=>flushCloudQueue();
-window.addEventListener('online',()=>flushCloudQueue());
-async function openCloudWorkspace(){
- if(!cloudApi)return;
- const {data:{session},error:authError}=await cloudApi.auth.getSession();
- if(authError||!session){cloudReady=false;cloudGate.style.display='flex';return;}
- cloudSession=session;cloudCurrentUserId=session.user.id;
- cloudMessage.textContent='جارٍ جلب بياناتك…';
- const {data:workspace,error}=await cloudApi.from('shulan_workspaces').select('payload').eq('user_id',cloudCurrentUserId).maybeSingle();
- if(error){cloudMessage.textContent='فشل تحميل قاعدة البيانات: '+error.message;cloudGate.style.display='flex';return;}
- let remote=workspace?.payload;
- if(!remote || !cloudValidPayload(remote))remote={clients:[],jobs:[],reportNotes:{},cashMovements:[]};
- remote.cashMovements=Array.isArray(remote.cashMovements)?remote.cashMovements:[];
- const pendingCopy=localStorage.getItem(unsyncedKey());
- db=remote;
- if(pendingCopy){
-  try{
-   const pending=JSON.parse(pendingCopy);
-   if(cloudValidPayload(pending) && confirm('عُثر على تعديلات محلية لم يكتمل حفظها سابقًا. هل تريد استعادتها وإرسالها إلى السحابة؟ (اختيار إلغاء سيترك النسخة السحابية كما هي.)')){
-    db=pending;db.cashMovements=Array.isArray(db.cashMovements)?db.cashMovements:[];cloudPending=db;
-   }
-  }catch(e){console.warn('Invalid unsynced recovery copy',e)}
- }
- cloudReady=true;cloudGate.style.display='none';cloudMessage.textContent='';
- $('#cloudAccountLabel').textContent='الحساب: '+(session.user.email||'—');
- renderAll();loadReportText();renderReport();
- statusCloud('✓ متصل بقاعدة البيانات السحابية');
- if(cloudPending)flushCloudQueue();
- if(oldLocalData?.jobs?.length && !remote.jobs?.length){
-  statusCloud('توجد بيانات محفوظة محليًا. انقلها من قسم النسخ الاحتياطي بعد حفظ نسخة JSON أولًا.');
- }
-}
-async function authCloud(action){
- if(!cloudApi)return;
- const email=$('#cloudEmail').value.trim(),password=$('#cloudPassword').value;
- if(!email || !password){cloudMessage.textContent='اكتب البريد الإلكتروني وكلمة المرور.';return;}
- cloudMessage.textContent='يرجى الانتظار…';
- try{
-  if(action==='signup'){
-   const {data,error}=await cloudApi.auth.signUp({email,password});if(error)throw error;
-   if(!data.session){cloudMessage.textContent='تحقق من بريدك لتأكيد الحساب، ثم عد وسجّل الدخول.';return;}
-  }else{const {error}=await cloudApi.auth.signInWithPassword({email,password});if(error)throw error;}
-  await openCloudWorkspace();
- }catch(e){cloudMessage.textContent='تعذّر الدخول: '+e.message;}
-}
-$('#cloudSignIn').onclick=()=>authCloud('login');
-$('#cloudSignUp').onclick=()=>authCloud('signup');
-$('#cloudSignOut').onclick=async()=>{
- if(cloudPending||cloudSaving){alertToast('هناك تغييرات لم تُحفظ بعد. أعد المحاولة بعد اكتمال الحفظ.');return;}
- if(!confirm('هل تريد تسجيل الخروج من حسابك السحابي؟'))return;
- await cloudApi.auth.signOut();cloudSession=null;cloudCurrentUserId=null;cloudReady=false;db=fresh();cloudGate.style.display='flex';statusCloud('');
-};
-$('#cloudRefresh').onclick=async()=>{
- if(cloudPending||cloudSaving){alertToast('انتظر حفظ التعديلات قبل إعادة تحميل البيانات.');return;}
- await openCloudWorkspace();alertToast('تم تحديث بياناتك من Supabase.');
-};
-$('#cloudImportLocal').onclick=async()=>{
- if(!cloudReady){alertToast('سجّل دخولك أولًا.');return;}
- if(cloudPending||cloudSaving){alertToast('انتظر حفظ التعديلات أولًا.');return;}
- if(!cloudValidPayload(oldLocalData)){alertToast('لم أجد بيانات محلية صالحة من الإصدار القديم. يمكنك استيراد نسخة JSON.');return;}
- const {data:remote,error}=await cloudApi.from('shulan_workspaces').select('payload').eq('user_id',cloudCurrentUserId).maybeSingle();
- if(error){alertToast(error.message);return;}
- if(remote?.payload?.jobs?.length||remote?.payload?.clients?.length){alertToast('القاعدة السحابية تحتوي بيانات. لن يتم استبدالها تلقائيًا. استخدم النسخة الاحتياطية للتعامل معها بأمان.');return;}
- const clients=oldLocalData.clients.length,jobs=oldLocalData.jobs.length;
- if(!confirm(`هل تريد نقل ${clients} عميل و${jobs} عمل من الإصدار المحلي القديم إلى حسابك السحابي؟ احتفظ بنسخة JSON أصلية أولًا.`))return;
- db=JSON.parse(JSON.stringify({clients:oldLocalData.clients,jobs:oldLocalData.jobs,reportNotes:oldLocalData.reportNotes||{}}));
  save();renderAll();loadReportText();alertToast('بدأ نقل البيانات إلى السحابة. انتظر رسالة تأكيد الحفظ.');
 };
 async function bootstrapCloud(){
