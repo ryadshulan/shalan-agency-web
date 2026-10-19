@@ -279,6 +279,27 @@ body{overflow-x:hidden}
 .task-rail .rail-add-row .rail-plus{width:38px;flex:0 0 38px}
 @media(max-width:750px){.task-rail .rail-add-row{grid-column:2;justify-content:flex-start;min-width:0}.task-rail .rail-add-row .rail-plus{height:39px}}
 </style>
+<style id="shulan-client-cash-ledger">
+/* Ledger for reimbursable advances, independent from service income. */
+.cash-panel{margin-bottom:17px}.cash-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.cash-note{grid-column:1/span 2}.cash-buttons{align-self:end;display:flex;flex-wrap:wrap;gap:8px}
+.cash-help{font-size:12px;line-height:1.8;color:#78686c;margin:14px 0 0}
+.cash-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:10px;margin:14px 0}
+.cash-total{border:1px solid #e8dcda;border-radius:12px;padding:13px;background:#fcf9f7;min-width:0}
+.cash-total h3{margin:0 0 8px;font-size:15px;color:#682d3b}
+.cash-total dl{margin:0;display:grid;gap:5px}
+.cash-total dl>div{display:flex;gap:5px;justify-content:space-between;align-items:center;font-size:12px}
+.cash-total dt{color:#766b6d}.cash-total dd{font-weight:800;margin:0;direction:ltr}
+.cash-total .cash-remaining{border-top:1px solid #e7dad7;padding-top:8px;color:#661a2a;font-size:15px}
+.cash-ledger{min-width:0}.cash-entries{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cash-entries table{min-width:800px}.cash-entry-actions{display:flex;gap:5px}
+.cash-stat-note{color:#87797b;font-size:12px;padding:14px}
+.cash-statement-preview{margin:14px 0 0;padding-top:14px;border-top:1px solid #ddd}
+.cash-statement-preview canvas{width:100%;max-width:680px;height:auto;display:block;margin:8px auto;background:#fff;box-shadow:0 9px 28px #38231c25}
+@media(max-width:900px){.cash-form{grid-template-columns:repeat(2,minmax(0,1fr))}.cash-note{grid-column:1/-1}.cash-buttons{grid-column:1/-1}}
+@media(max-width:550px){.cash-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cash-form .field{min-width:0}.cash-form .field label{font-size:11px}.cash-form .field input,.cash-form .field select{font-size:13px}.cash-note,.cash-buttons{grid-column:1/-1}.cash-panel,.cash-ledger{padding:13px}.cash-totals{grid-template-columns:1fr 1fr;gap:8px}.cash-total{padding:10px}.cash-total dl>div{font-size:11px}.cash-total h3{font-size:13px}}
+@media(max-width:359px){.cash-totals{grid-template-columns:1fr}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -302,6 +323,7 @@ body{overflow-x:hidden}
    <button type="button" data-page="dashboard" class="active"><span class="nav-icon">▦</span>لوحة التحكم</button>
    <button type="button" data-page="clients"><span class="nav-icon">▣</span>العملاء</button>
    <button type="button" data-page="jobs"><span class="nav-icon">≡</span>سجل الأعمال</button>
+   <button type="button" data-page="advances"><span class="nav-icon">◈</span>مبالغ العملاء</button>
    <button type="button" data-page="reports"><span class="nav-icon">▤</span>التقرير الرسمي</button>
    <button type="button" data-page="backup"><span class="nav-icon">⚙</span>البيانات والنسخ</button>
   </div>
@@ -316,6 +338,33 @@ body{overflow-x:hidden}
   </section>
   <section class="section" id="page-clients"><div class="panel-head"><div><h2>سجل العملاء</h2><p>لكل عميل ملف مستقل وجميع أعماله محفوظة</p></div><button class="btn primary" id="addClient">＋ عميل جديد</button></div><div class="client-list" id="clientsList"></div></section>
   <section class="section" id="page-jobs"><div class="panel"><div class="panel-head"><div><h2>الأعمال والخدمات</h2><p>تستطيع تسجيل الأعمال وتعديل حالتها والرجوع إلى تفاصيلها</p></div><button class="btn primary" id="addJob">＋ عمل جديد</button></div><div class="filterbar"><div class="field"><label>العميل</label><select id="jobsClient"></select></div><div class="field"><label>الحالة</label><select id="jobsStatus"><option value="all">جميع الحالات</option><option value="done">مكتمل</option><option value="active">قيد التنفيذ</option><option value="review">بانتظار المراجعة</option><option value="pending">لم يبدأ</option></select></div><div class="field"><label>ابحث</label><input id="jobsSearch" placeholder="اسم العمل أو المشروع أو الخدمة"></div></div><div class="table-wrap" id="jobsTable"></div></div></section>
+
+  <section class="section" id="page-advances">
+    <div class="panel cash-panel">
+      <div class="panel-head"><div><h2>مبالغ دفعتها نيابة عن العملاء</h2><p>سجّل كل دفعة أو مبلغ مسترد، حتى عند تكرار الدفع للعمل نفسه.</p></div></div>
+      <form id="cashForm" class="cash-form">
+        <div class="field"><label for="cashClient">العميل *</label><select id="cashClient" required></select></div>
+        <div class="field"><label for="cashJob">العمل المرتبط (اختياري)</label><select id="cashJob"></select></div>
+        <div class="field"><label for="cashKind">نوع الحركة *</label><select id="cashKind"><option value="advance">دفعت عن العميل (+)</option><option value="repayment">استلمت من العميل (−)</option></select></div>
+        <div class="field"><label for="cashDate">التاريخ *</label><input id="cashDate" type="date" required></div>
+        <div class="field"><label for="cashAmount">المبلغ *</label><input id="cashAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0" required></div>
+        <div class="field"><label for="cashCurrency">العملة *</label><select id="cashCurrency"><option value="ر.ي">ريال يمني</option><option value="ر.س">ريال سعودي</option><option value="$">دولار أمريكي</option></select></div>
+        <div class="field cash-note"><label for="cashNote">الوصف / سبب الدفع</label><input id="cashNote" maxlength="220" placeholder="مثلاً: دفعة طباعة البنرات"></div>
+        <div class="cash-buttons"><button class="btn primary" type="submit" id="cashSave">＋ حفظ الحركة</button><button class="btn" id="cashCancel" type="button" hidden>إلغاء التعديل</button></div>
+      </form>
+      <p class="cash-help">المبالغ هنا مستحقات استرداد مستقلة عن قيمة خدماتك. سجل كل دفعة بتاريخها، وأضف ما تستلمه لاحقًا كحركة مستقلة. لا تُحتسب تكلفة العمل أو قيمته تلقائيًا ضمن هذا الكشف.</p>
+    </div>
+    <div class="panel cash-ledger">
+      <div class="panel-head"><div><h2>كشف الحركات والأرصدة</h2><p>رصيد أول الفترة + ما دفعته − ما استلمته = الرصيد في نهايتها.</p></div></div>
+      <div class="filterbar cash-filters">
+        <div class="field"><label for="cashFilterClient">العميل</label><select id="cashFilterClient"></select></div>
+        <div class="field"><label for="cashFrom">من تاريخ</label><input id="cashFrom" type="date"></div>
+        <div class="field"><label for="cashTo">إلى تاريخ</label><input id="cashTo" type="date"></div>
+      </div>
+      <div id="cashTotals" class="cash-totals"></div>
+      <div id="cashEntries" class="cash-entries"></div>
+    </div>
+  </section>
   <section class="section" id="page-reports">
    <div class="report-layout"><div class="panel report-settings"><div class="panel-head wide"><div><h2>تقرير الإنجازات المكتملة</h2><p>يُعبّأ على ورقتك الرسمية الأصلية من الأعمال المكتملة فقط</p></div></div>
     <div class="field"><label for="reportClient">العميل</label><select id="reportClient"></select></div>
@@ -324,10 +373,11 @@ body{overflow-x:hidden}
     <div class="field wide"><label for="reportNote">لمسات أو ملاحظات على الأعمال المنجزة (اختياري)</label><textarea id="reportNote" placeholder="مثال: تنفيذ المواد وفق متطلبات الهوية البصرية المعتمدة"></textarea></div>
     <div class="field wide"><label for="reportImpact">أبرز المخرجات أو القيمة المقدمة (اختياري)</label><textarea id="reportImpact" placeholder="مثال: إعداد مجموعة موحدة من التصاميم جاهزة للنشر والطباعة"></textarea></div>
     <label class="checkbox-row wide"><input type="checkbox" id="reportFinance"> إظهار الملخص المالي للعميل (اختياري)</label>
+    <div class="hint wide">يشمل التقرير كشف المبالغ التي دفعتها عن العميل، والمبالغ المستردة، والرصيد المطلوب عند نهاية الفترة؛ وهي مستقلة عن إيرادات خدماتك.</div>
     <div class="hint wide">يُظهر التقرير <strong>إجمالي الأعمال المكتملة فقط</strong> وملخصًا مختصرًا دون تفاصيل المهام أو تصنيفات الخدمات. الأعمال غير المكتملة لا تظهر في التقرير.</div>
     <button class="btn primary w100 wide" id="downloadPdf">⬇ تنزيل التقرير PDF</button><button class="btn w100 wide" id="shareWhatsapp">↗ مشاركة التقرير عبر واتساب</button>
     <p class="small-help wide">على الجوال يمكن فتح نافذة مشاركة PDF مباشرة إذا كان الجهاز يدعمها. على الكمبيوتر يُنزّل التقرير وتفتح رسالة واتساب، ثم تُرفقه يدويًا. لا يوجد إرسال تلقائي دون موافقتك أو ربط واجهة واتساب الرسمية.</p>
-   </div><div class="preview-area"><div class="preview-top"><strong>معاينة تقرير الإنجازات على المذكرة الأصلية</strong><span class="muted-tag">A4 · صفحة واحدة</span></div><canvas id="reportCanvas" width="1448" height="2048" aria-label="معاينة التقرير"></canvas></div></div>
+   </div><div class="preview-area"><div class="preview-top"><strong>معاينة تقرير الإنجازات على المذكرة الأصلية</strong><span class="muted-tag">A4 · صفحة واحدة</span></div><canvas id="reportCanvas" width="1448" height="2048" aria-label="معاينة التقرير"></canvas><div id="cashReportPreview" class="cash-statement-preview" hidden><div class="muted-tag">معاينة كشف المبالغ التفصيلي (صفحات إضافية في PDF)</div><canvas id="cashReportCanvas" width="1448" height="2048" aria-label="معاينة كشف مبالغ العميل"></canvas></div></div></div>
   </section>
   <section class="section" id="page-backup"><div id="cloudSettings">
  <h3>☁ تخزين بياناتك على Supabase</h3>
@@ -372,8 +422,8 @@ const two=n=>String(n).padStart(2,'0');
 function localToday(){const d=new Date();return `${d.getFullYear()}-${two(d.getMonth()+1)}-${two(d.getDate())}`;}
 function monthStart(){return localToday().slice(0,7)+'-01';}
 function uid(){return 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9)}
-function fresh(){return {clients:[{id:uid(),name:'النجم الحديث',phone:'',details:''}],jobs:[],reportNotes:{}};}
-function load(){try{let o=JSON.parse(localStorage.getItem(storageKey));if(o&&Array.isArray(o.clients)&&Array.isArray(o.jobs)){o.reportNotes??={};return o;}}catch(e){}return fresh();}
+function fresh(){return {clients:[{id:uid(),name:'النجم الحديث',phone:'',details:''}],jobs:[],reportNotes:{},cashMovements:[]};}
+function load(){try{let o=JSON.parse(localStorage.getItem(storageKey));if(o&&Array.isArray(o.clients)&&Array.isArray(o.jobs)){o.reportNotes??={};o.cashMovements??=[];return o;}}catch(e){}return fresh();}
 let db=load();let currentPage='dashboard',editing=null,modalType='',toastTimer=null, clientSelected='all';
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtNum=n=>new Intl.NumberFormat('ar',{maximumFractionDigits:1}).format(Number(n)||0);
@@ -381,9 +431,9 @@ const currencyFmt=n=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).fo
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(db));}catch(e){console.warn('Browser storage unavailable: changes remain only in memory',e);}}
 function alertToast(s){let t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4400);}
 function setOptions(el,arr,placeholder,selected){if(!el)return;let old=selected??el.value;el.innerHTML=(placeholder?`<option value="all">${safe(placeholder)}</option>`:'')+arr.map(c=>`<option value="${safe(c.id)}">${safe(c.name)}</option>`).join('');if(Array.from(el.options).some(o=>o.value===old))el.value=old;else el.selectedIndex=0;}
-function refreshOptions(){setOptions($('#dashClient'),db.clients,'جميع العملاء');setOptions($('#jobsClient'),db.clients,'جميع العملاء');setOptions($('#reportClient'),db.clients,null);}
-function renderAll(){refreshOptions();renderDash();renderClients();renderJobs();renderTaskRail();renderReport();$('#backupCount').textContent=`عدد العملاء: ${fmtNum(db.clients.length)} | عدد الأعمال المسجلة: ${fmtNum(db.jobs.length)}`;}
-function page(p){currentPage=p;$$('.section').forEach(n=>n.classList.toggle('active',n.id==='page-'+p));$$('.nav button').forEach(n=>n.classList.toggle('active',n.dataset.page===p));let labels={dashboard:['لوحة التحكم','نظرة عامة على عملائك ونشاطك'],clients:['العملاء','علاقات مستمرة وسجل متكامل لكل عميل'],jobs:['سجل الأعمال','إدارة الخدمات والمهام والتكاليف'],reports:['التقرير الرسمي','تقرير مُعبأ تلقائيًا على ورقتك الرسمية'],backup:['البيانات والنسخ','تصدير واستعادة بيانات أعمالك']};$('#pageTitle').textContent=labels[p][0];$('#pageDesc').textContent=labels[p][1];if(p==='reports')setTimeout(renderReport,0);}
+function refreshOptions(){setOptions($('#dashClient'),db.clients,'جميع العملاء');setOptions($('#jobsClient'),db.clients,'جميع العملاء');setOptions($('#reportClient'),db.clients,null);setOptions($('#cashClient'),db.clients,null);setOptions($('#cashFilterClient'),db.clients,'جميع العملاء');}
+function renderAll(){refreshOptions();renderDash();renderClients();renderJobs();renderTaskRail();renderCash();renderReport();$('#backupCount').textContent=`عدد العملاء: ${fmtNum(db.clients.length)} | عدد الأعمال المسجلة: ${fmtNum(db.jobs.length)}`;}
+function page(p){currentPage=p;$$('.section').forEach(n=>n.classList.toggle('active',n.id==='page-'+p));$$('.nav button').forEach(n=>n.classList.toggle('active',n.dataset.page===p));let labels={dashboard:['لوحة التحكم','نظرة عامة على عملائك ونشاطك'],clients:['العملاء','علاقات مستمرة وسجل متكامل لكل عميل'],jobs:['سجل الأعمال','إدارة الخدمات والمهام والتكاليف'],advances:['مبالغ العملاء','دفعاتك نيابةً عن العملاء والتحصيلات والأرصدة'],reports:['التقرير الرسمي','تقرير مُعبأ تلقائيًا على ورقتك الرسمية'],backup:['البيانات والنسخ','تصدير واستعادة بيانات أعمالك']};$('#pageTitle').textContent=labels[p][0];$('#pageDesc').textContent=labels[p][1];if(p==='reports')setTimeout(renderReport,0);}
 function filteredJobs(client,from,to){return db.jobs.filter(j=>(client==='all'||j.clientId===client)&&(!from||j.date>=from)&&(!to||j.date<=to));}
 function timeSort(a,b){return String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id));}
 function renderDash(){let jobs=filteredJobs($('#dashClient').value||'all',$('#dashFrom').value,$('#dashTo').value);let count={done:0,active:0,review:0,pending:0};jobs.forEach(j=>{count[j.status]=(count[j.status]||0)+1;});
@@ -615,7 +665,7 @@ $('#shareWhatsapp').onclick=async()=>{try{if(!getReportData().jobs.length){alert
  }catch(e){if(e.name!=='AbortError'){alertToast('تعذّر مشاركة التقرير: '+e.message);console.error(e);}}};
 function dataFilename(suffix){return 'شعلان_'+suffix+'_'+localToday();}
 $('#exportJson').onclick=()=>{let json=JSON.stringify({...db,exportedAt:new Date().toISOString()},null,2);downloadBlob(new Blob([json],{type:'application/json;charset=utf-8'}),dataFilename('نسخة_احتياطية')+'.json');alertToast('تم حفظ النسخة الاحتياطية.');};
-$('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع البيانات المحلية ببيانات النسخة المختارة. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{}};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
+$('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع البيانات المحلية ببيانات النسخة المختارة. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{},cashMovements:Array.isArray(o.cashMovements)?o.cashMovements:[]};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
 $('#exportCsv').onclick=()=>{let cols=['اسم العميل','تاريخ','اسم العمل','المشروع','الخدمة','الحالة','موعد التسليم','وقت الإكمال','الوصف','العملة','السعر','التكلفة','المستلم'];let data=[cols,...db.jobs.map(j=>[db.clients.find(c=>c.id===j.clientId)?.name||'',j.date,j.title,j.project,j.category,statustext[j.status]||'',j.dueDate||'',j.completedAt||'',j.description,j.currency,j.price,j.cost,j.paid])];let csv='\ufeff'+data.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),dataFilename('الأعمال')+'.csv');alertToast('تم تصدير جميع الأعمال إلى CSV.');};
 $('#dashFrom').value=monthStart();$('#dashTo').value=localToday();$('#reportFrom').value=monthStart();$('#reportTo').value=localToday();save();renderAll();loadReportText();renderReport();
 
@@ -674,14 +724,15 @@ async function openCloudWorkspace(){
  const {data:workspace,error}=await cloudApi.from('shulan_workspaces').select('payload').eq('user_id',cloudCurrentUserId).maybeSingle();
  if(error){cloudMessage.textContent='فشل تحميل قاعدة البيانات: '+error.message;cloudGate.style.display='flex';return;}
  let remote=workspace?.payload;
- if(!remote || !cloudValidPayload(remote))remote={clients:[],jobs:[],reportNotes:{}};
+ if(!remote || !cloudValidPayload(remote))remote={clients:[],jobs:[],reportNotes:{},cashMovements:[]};
+ remote.cashMovements=Array.isArray(remote.cashMovements)?remote.cashMovements:[];
  const pendingCopy=localStorage.getItem(unsyncedKey());
  db=remote;
  if(pendingCopy){
   try{
    const pending=JSON.parse(pendingCopy);
    if(cloudValidPayload(pending) && confirm('عُثر على تعديلات محلية لم يكتمل حفظها سابقًا. هل تريد استعادتها وإرسالها إلى السحابة؟ (اختيار إلغاء سيترك النسخة السحابية كما هي.)')){
-    db=pending;cloudPending=pending;
+    db=pending;db.cashMovements=Array.isArray(db.cashMovements)?db.cashMovements:[];cloudPending=db;
    }
   }catch(e){console.warn('Invalid unsynced recovery copy',e)}
  }
