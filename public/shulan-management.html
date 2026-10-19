@@ -772,13 +772,54 @@ function renderReport(){
 }
 
 function asBytes(s){return new TextEncoder().encode(s);}
-function buildPdf(jpegBytes,w,h){let nodes=[],len=0,offsets=[0];function add(data){if(typeof data==='string')data=asBytes(data);nodes.push(data);len+=data.length;}function obj(num,parts){offsets[num]=len;add(`${num} 0 obj\n`);for(let p of parts)add(p);add('\nendobj\n');}
- add('%PDF-1.4\n%\xff\xff\xff\xff\n');obj(1,['<< /Type /Catalog /Pages 2 0 R >>']);obj(2,['<< /Type /Pages /Kids [3 0 R] /Count 1 >>']);obj(3,['<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>']);let commands='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q\n';obj(4,[`<< /Length ${commands.length} >>\nstream\n${commands}endstream`]);offsets[5]=len;add(`5 0 obj\n<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);add(jpegBytes);add('\nendstream\nendobj\n');let xoff=len;add('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)add(String(offsets[i]).padStart(10,'0')+' 00000 n \n');add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xoff}\n%%EOF`);let out=new Uint8Array(len),pos=0;for(let b of nodes){out.set(b,pos);pos+=b.length;}return new Blob([out],{type:'application/pdf'});}
-function createReportPdf(){if(!bg.complete||!bg.naturalWidth)throw new Error('لم يكتمل تحميل ورقة التقرير');let canvas=document.createElement('canvas');reportCanvasDraw(canvas,2);let base64=canvas.toDataURL('image/jpeg',.91).split(',')[1];let raw=atob(base64),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return buildPdf(bytes,canvas.width,canvas.height);}
+
+function buildPdf(pages){
+ if(!Array.isArray(pages)||!pages.length)throw Error('لا توجد صفحات للتقرير');
+ const nodes=[],offsets=[0];let length=0;
+ function add(data){if(typeof data==='string')data=asBytes(data);nodes.push(data);length+=data.length;}
+ function obj(id,parts){offsets[id]=length;add(id+' 0 obj\n');for(const part of parts)add(part);add('\nendobj\n');}
+ add('%PDF-1.4\n%\xff\xff\xff\xff\n');
+ const refs=pages.map((p,i)=>({page:3+i*3,content:4+i*3,image:5+i*3}));
+ obj(1,['<< /Type /Catalog /Pages 2 0 R >>']);
+ obj(2,['<< /Type /Pages /Kids ['+refs.map(x=>x.page+' 0 R').join(' ')+'] /Count '+pages.length+' >>']);
+ for(let i=0;i<pages.length;i++){
+  const page=pages[i],ref=refs[i],name='Im'+i;
+  obj(ref.page,['<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /'+name+' '+ref.image+' 0 R >> >> /Contents '+ref.content+' 0 R >>']);
+  const commands='q 595.28 0 0 841.89 0 0 cm /'+name+' Do Q\n';
+  obj(ref.content,['<< /Length '+asBytes(commands).length+' >>\nstream\n'+commands+'endstream']);
+  offsets[ref.image]=length;
+  add(ref.image+' 0 obj\n<< /Type /XObject /Subtype /Image /Width '+page.w+' /Height '+page.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+page.bytes.length+' >>\nstream\n');
+  add(page.bytes);add('\nendstream\nendobj\n');
+ }
+ const start=length,max=5+3*(pages.length-1);
+ add('xref\n0 '+(max+1)+'\n0000000000 65535 f \n');
+ for(let id=1;id<=max;id++)add(String(offsets[id]).padStart(10,'0')+' 00000 n \n');
+ add('trailer\n<< /Size '+(max+1)+' /Root 1 0 R >>\nstartxref\n'+start+'\n%%EOF');
+ const out=new Uint8Array(length);let cursor=0;for(const b of nodes){out.set(b,cursor);cursor+=b.length;}
+ return new Blob([out],{type:'application/pdf'});
+}
+function canvasPdfPart(canvas){
+ const raw=atob(canvas.toDataURL('image/jpeg',.88).split(',')[1]);
+ const bytes=new Uint8Array(raw.length);
+ for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+ return {bytes,w:canvas.width,h:canvas.height};
+}
+function createReportPdf(){
+ if(!bg.complete||!bg.naturalWidth)throw Error('لم يكتمل تحميل ورقة التقرير');
+ const canvas=document.createElement('canvas');
+ reportCanvasDraw(canvas,2);const pages=[canvasPdfPart(canvas)];
+ const moves=getReportData().cash.movements;
+ for(let i=0;i<Math.ceil(moves.length/cashStatementPageSize);i++){
+  cashStatementPageDraw(canvas,i,1.5);
+  pages.push(canvasPdfPart(canvas));
+ }
+ return buildPdf(pages);
+}
+function reportHasContent(){const d=getReportData();return d.jobs.length>0||d.cash.hasContent;}
 function filename(){let c=db.clients.find(c=>c.id===$('#reportClient').value);return `تقرير_${(c?.name||'عميل').replace(/[\\/:*?"<>|]/g,'_')}_${$('#reportFrom').value}_${$('#reportTo').value}.pdf`;}
 function downloadBlob(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),9000);}
-$('#downloadPdf').onclick=()=>{try{if(!getReportData().jobs.length){alertToast('لا توجد أعمال مكتملة في الفترة المحددة. اختر فترة أخرى قبل إصدار التقرير.');return;}let pdf=createReportPdf();downloadBlob(pdf,filename());alertToast('تم تجهيز التقرير PDF على ورقتك الرسمية.');}catch(e){alertToast('تعذّر تجهيز PDF: '+e.message);console.error(e);}};
-$('#shareWhatsapp').onclick=async()=>{try{if(!getReportData().jobs.length){alertToast('لا توجد أعمال مكتملة في الفترة المحددة لمشاركتها.');return;}let pdf=createReportPdf();let name=filename(),file=new File([pdf],name,{type:'application/pdf'});let c=db.clients.find(c=>c.id===$('#reportClient').value);let msg=`مرحبًا، يسعدنا مشاركتكم ملخص الإنجازات المكتملة للفترة ${pdfRange($('#reportFrom').value,$('#reportTo').value)}. مرفق تقرير الأداء الخاص بكم.\nمع تحيات شعلان للدعاية والإعلان.`;
+$('#downloadPdf').onclick=()=>{try{if(!reportHasContent()){alertToast('لا توجد أعمال منجزة أو مبالغ مسجلة لهذه الفترة.');return;}let pdf=createReportPdf();downloadBlob(pdf,filename());alertToast('تم تجهيز التقرير PDF على ورقتك الرسمية.');}catch(e){alertToast('تعذّر تجهيز PDF: '+e.message);console.error(e);}};
+$('#shareWhatsapp').onclick=async()=>{try{if(!reportHasContent()){alertToast('لا توجد أعمال منجزة أو مبالغ مسجلة لهذه الفترة.');return;}let pdf=createReportPdf();let name=filename(),file=new File([pdf],name,{type:'application/pdf'});let c=db.clients.find(c=>c.id===$('#reportClient').value);let msg=`مرحبًا، يسعدنا مشاركتكم تقرير الإنجازات وكشف المبالغ للفترة ${pdfRange($('#reportFrom').value,$('#reportTo').value)}. مرفق تقرير الأداء الخاص بكم.\nمع تحيات شعلان للدعاية والإعلان.`;
  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:msg,title:name});return;}
  downloadBlob(pdf,name);let phone=String(c?.phone||'').replace(/\D/g,'');let url='https://wa.me/'+phone+'?text='+encodeURIComponent(msg);window.open(url,'_blank','noopener');alertToast('تم تنزيل PDF وفتح واتساب. أرفق الملف في المحادثة لإرساله.');
  }catch(e){if(e.name!=='AbortError'){alertToast('تعذّر مشاركة التقرير: '+e.message);console.error(e);}}};
@@ -916,7 +957,7 @@ bootstrapCloud();
 
 </script>
 </body>
-</html>].includes(currency)||!Number.isFinite(amount)||amount<=0||!Number.isInteger(Math.round(amount*100))){alertToast('أدخل مبلغًا موجبًا وتاريخًا وعملة صحيحة.');return;}
+</html>].includes(currency)||!Number.isFinite(amount)||amount<=0||Math.abs(amount*100-Math.round(amount*100))>0.00001){alertToast('أدخل مبلغًا موجبًا وتاريخًا وعملة صحيحة.');return;}
  if(amount>100000000000){alertToast('المبلغ كبير جدًا، راجع القيمة.');return;}
  if(jobId&&!db.jobs.some(j=>j.id===jobId&&j.clientId===clientId)){alertToast('العمل المختار لا يتبع العميل.');return;}
  const old=cashList().find(m=>m.id===cashEditingId);
