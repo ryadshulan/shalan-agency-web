@@ -964,7 +964,7 @@ bootstrapCloud();
  const now=new Date().toISOString();
  const entry={id:old?.id||uid(),clientId,jobId,kind,date,amount:moneyRound(amount),currency,note,createdAt:old?.createdAt||now,updatedAt:now};
  if(old)Object.assign(old,entry);else cashList().push(entry);
- save();renderAll();clearCashForm();$('#cashFilterClient').value=clientId;renderCash();alertToast('تم تسجيل الحركة المالية ومزامنتها.');
+ save();renderAll();clearCashForm();$('#cashFilterClient').value=clientId;renderCash();alertToast('تم تسجيل الحركة، جارٍ حفظها في السحابة.');
 });
 document.addEventListener('click',e=>{
  const btn=e.target.closest('[data-cash-action]');if(!btn)return;
