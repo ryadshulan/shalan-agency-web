@@ -31,7 +31,15 @@ jobs:
             const page=await browser.newPage(),errors=[];
             page.on('pageerror',e=>errors.push(e.message));
             await page.goto('file://'+path.resolve('public/shulan-management.html'),{waitUntil:'domcontentloaded',timeout:60000});
-            await page.waitForFunction(()=>typeof getReportData==='function'&&typeof cashStatement==='function'&&typeof createReportPdf==='function'&&bg.complete&&bg.naturalWidth>0,{timeout:45000});
+            await page.waitForFunction(()=>document.readyState==='complete',{timeout:45000});
+            console.log('LOAD DIAG',JSON.stringify(await page.evaluate(()=>({
+              report:typeof getReportData,cash:typeof cashStatement,pdf:typeof createReportPdf,
+              bg:typeof bg!=='undefined'?{loaded:bg.complete,width:bg.naturalWidth}:null,
+              title:document.title,html:document.documentElement.outerHTML.slice(-180)
+            }))));
+            if(errors.length)console.log('EARLY PAGE ERRORS',errors);
+            await page.waitForFunction(()=>typeof getReportData==='function'&&typeof cashStatement==='function'&&typeof createReportPdf==='function',{timeout:12000});
+            await page.waitForFunction(()=>bg.complete&&bg.naturalWidth>0,{timeout:12000});
             const result=await page.evaluate(async()=>{
               db={clients:[{id:'a',name:'عميل تجريبي',phone:'',details:''},{id:'b',name:'عميل آخر',phone:'',details:''}],
               jobs:[{id:'j1',clientId:'a',title:'تنفيذ مواد دعائية',date:'2026-10-04',status:'pending',category:''}],
