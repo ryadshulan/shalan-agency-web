@@ -657,7 +657,7 @@ function getReportData(){
  let cat={};jobs.forEach(j=>cat[j.category||'خدمات أخرى']=(cat[j.category||'خدمات أخرى']||0)+1);
  let projects=[...new Set(jobs.map(j=>String(j.project||'').trim()).filter(Boolean))];
  let totals={};for(const j of jobs){let k=j.currency||'ر.ي';totals[k]??={price:0,paid:0,cost:0};totals[k].price+=Number(j.price)||0;totals[k].paid+=Number(j.paid)||0;totals[k].cost+=Number(j.cost)||0;}
- return {client:c,jobs,projects,cat:Object.entries(cat).sort((a,b)=>b[1]-a[1]),totals};
+ return {client:c,jobs,projects,cat:Object.entries(cat).sort((a,b)=>b[1]-a[1]),totals,cash:cashStatement(cid,$('#reportFrom').value,$('#reportTo').value)};
 }
 function roundRect(ctx,x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.lineWidth=2;ctx.strokeStyle=stroke;ctx.stroke();}}
 function drawText(ctx,str,x,y,px=25,color=pal.ink,weight=400,align='right'){ctx.save();ctx.font=`${weight} ${px}px Tahoma, "Segoe UI", Arial, sans-serif`;ctx.textBaseline='middle';ctx.direction='rtl';ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(String(str),x,y);ctx.restore();}
@@ -686,7 +686,7 @@ function reportCanvasDraw(canvas,scale=1){
  // Concise client report: show completed count, without individual task titles or service types.
  const intro=completed.length
    ? `يسرنا مشاركة ملخص إنجازاتنا لصالح ${d.client?.name||'عميلنا'} خلال الفترة المحددة، مع التركيز على حصيلة الأعمال المكتملة.`
-   : 'لا توجد أعمال مكتملة مسجلة خلال الفترة المحددة. اختر فترة أخرى لتجهيز تقرير الإنجازات.';
+   : (d.cash.hasContent?'يُقدَّم هذا التقرير لعرض كشف المبالغ المدفوعة نيابة عن العميل خلال الفترة المحددة.':'لا توجد أعمال مكتملة أو مبالغ مسجلة خلال الفترة المحددة.');
  lines(ctx,intro,1357,374,1250,27,43,2,pal.ink,400);
 
  roundRect(ctx,62,505,1323,256,20,'#fcf9f7','#e4d6d0');
@@ -696,19 +696,30 @@ function reportCanvasDraw(canvas,scale=1){
  drawText(ctx,fmtNum(completed.length),1320,700,83,pal.wine,800);
  drawText(ctx,'عملًا منجزًا',1090,699,27,pal.muted,700);
 
+
  heading(ctx,'ملخص الإنجازات',839);
  const note=$('#reportNote').value.trim(),impact=$('#reportImpact').value.trim();
- const summary=note||'نعتز بالأعمال التي أنجزناها خلال الفترة، وبالثقة المتبادلة التي تسهم في استمرار تقديم خدمات إعلانية باهتمام وجودة.';
- lines(ctx,summary,1325,967,1217,29,49,4,pal.ink,400);
+ const summary=note||'نعتز بثقة عملائنا وبالأعمال التي جرى إنجازها خلال هذه الفترة، ونواصل تقديم حلول إعلانية باهتمام وجودة.';
+ lines(ctx,summary,1325,948,1217,28,46,3,pal.ink,400);
+ if(impact)lines(ctx,impact,1325,1104,1217,22,36,2,pal.muted,400);
 
- if(impact){
-   heading(ctx,'القيمة المقدمة',1232);
-   lines(ctx,impact,1325,1355,1217,27,47,4,pal.ink,400);
+ if(d.cash.hasContent){
+  heading(ctx,'كشف المبالغ المدفوعة نيابة عن العميل',1247);
+  const currencies=d.cash.totals.filter(s=>s.opening||s.advances||s.received||s.closing);
+  currencies.slice(0,4).forEach((s,i)=>{
+   const y=1370+i*92;
+   drawText(ctx,s.currency,1350,y,27,pal.wine,800);
+   const debt=s.closing<0?'دائن للعميل':'الرصيد المطلوب';
+   const label='رصيد أول الفترة: '+currencyFmt(s.opening)+'  |  دفعات: '+currencyFmt(s.advances)+'  |  استلمنا: '+currencyFmt(s.received)+'  |  '+debt+': '+currencyFmt(Math.abs(s.closing));
+   drawText(ctx,truncate(ctx,label,1180,21,600),1323,y+37,21,pal.ink,600);
+  });
+  if(currencies.length>4)drawText(ctx,'توجد عملات إضافية في السجل المالي.',1345,1757,20,pal.muted);
+  if(d.cash.movements.length)drawText(ctx,'عدد الحركات خلال الفترة: '+fmtNum(d.cash.movements.length)+' — كشف تفصيلي في الصفحات التالية.',1340,1816,22,pal.wine,700);
+ }else{
+  divider(ctx,188,1585,1090);
+  drawText(ctx,'شكرًا لثقتكم',1325,1660,34,pal.wine,800);
+  lines(ctx,'نعتز بشراكتنا معكم، ونسعد بأن تكون أعمالنا جزءًا من حضور علامتكم التجارية.',1325,1740,1200,24,42,2,pal.ink,400);
  }
-
- divider(ctx,188,1713,1090);
- drawText(ctx,'شكرًا لثقتكم',1325,1776,36,pal.wine,800);
- lines(ctx,'نعتز بشراكتنا معكم، ونسعد بأن تكون أعمالنا جزءًا من حضور علامتكم التجارية.',1325,1844,1200,24,42,2,pal.ink,400);
  // Optional completed-work financial totals only; hidden by default.
  if($('#reportFinance').checked){
    let txt=Object.entries(d.totals).map(([cur,t])=>`${cur}: إجمالي المنجز ${currencyFmt(t.price)} / المستلم ${currencyFmt(t.paid)} / المتبقي ${currencyFmt(t.price-t.paid)}`).join('  |  ');
@@ -716,7 +727,50 @@ function reportCanvasDraw(canvas,scale=1){
  }
  return canvas;
 }
-function renderReport(){if(!bg.complete||!bg.naturalWidth)return;let c=$('#reportCanvas');if(!c)return;reportCanvasDraw(c,1);}
+
+const cashStatementPageSize=18;
+function cashStatementPageDraw(canvas,pageNumber=0,scale=1){
+ const W=1448,H=2048;
+ canvas.width=W*scale;canvas.height=H*scale;
+ const ctx=canvas.getContext('2d');ctx.setTransform(scale,0,0,scale,0,0);
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+ if(bg.complete&&bg.naturalWidth)ctx.drawImage(bg,0,0,W,H);
+ const data=getReportData(),all=data.cash.movements;
+ const pages=Math.ceil(all.length/cashStatementPageSize);
+ drawText(ctx,'كشف المبالغ المدفوعة والمستردة',385,70,26,'#f8e8d8',800);
+ drawText(ctx,truncate(ctx,data.client?.name||'العميل',365,30,800),385,117,29,'#f8e8d8',800);
+ drawText(ctx,pdfRange($('#reportFrom').value,$('#reportTo').value),385,166,25,'#f8e8d8',700);
+ heading(ctx,'تفاصيل الحركة المالية',290);
+ drawText(ctx,'المبالغ المدفوعة نيابة عن العميل والتحصيلات اللاحقة، باستقلال عن قيمة خدمات التصميم.',1340,389,22,pal.muted);
+ roundRect(ctx,62,444,1323,53,8,'#f4ece9');
+ const pos={date:1350,type:1150,desc:905,currency:425,amount:310};
+ for(const [label,x] of [['التاريخ',pos.date],['العملية',pos.type],['العمل / الوصف',pos.desc],['العملة',pos.currency],['المبلغ',pos.amount]])
+  drawText(ctx,label,x,470,22,pal.wine,700);
+ all.slice(pageNumber*cashStatementPageSize,(pageNumber+1)*cashStatementPageSize).forEach((m,i)=>{
+  const y=544+i*67;
+  if(i%2===1)roundRect(ctx,62,y-31,1323,60,3,'#fbf8f7');
+  const job=db.jobs.find(j=>j.id===m.jobId);
+  const desc=[job?.title,m.note].filter(Boolean).join(' — ')||'—';
+  drawText(ctx,m.date,pos.date,y,22,pal.ink);
+  drawText(ctx,m.kind==='repayment'?'استلمنا':'دفعنا',pos.type,y,21,m.kind==='repayment'?pal.green:pal.wine,700);
+  drawText(ctx,truncate(ctx,desc,440,20,500),pos.desc,y,20,pal.ink,500);
+  drawText(ctx,m.currency,pos.currency,y,22,pal.muted,700);
+  drawText(ctx,(m.kind==='repayment'?'− ':'+ ')+currencyFmt(m.amount),pos.amount,y,23,m.kind==='repayment'?pal.green:pal.wine,700);
+ });
+ divider(ctx,150,1840,1135);
+ drawText(ctx,'الصفحة '+fmtNum(pageNumber+1)+' من '+fmtNum(pages)+' — ملخص الأرصدة في الصفحة الأولى.',1330,1900,22,pal.muted);
+ return canvas;
+}
+function renderReport(){
+ if(!bg.complete||!bg.naturalWidth)return;
+ const c=$('#reportCanvas');if(!c)return;
+ reportCanvasDraw(c,1);
+ const entries=getReportData().cash.movements;
+ const container=$('#cashReportPreview');
+ container.hidden=!entries.length;
+ if(entries.length)cashStatementPageDraw($('#cashReportCanvas'),0,1);
+}
+
 function asBytes(s){return new TextEncoder().encode(s);}
 function buildPdf(jpegBytes,w,h){let nodes=[],len=0,offsets=[0];function add(data){if(typeof data==='string')data=asBytes(data);nodes.push(data);len+=data.length;}function obj(num,parts){offsets[num]=len;add(`${num} 0 obj\n`);for(let p of parts)add(p);add('\nendobj\n');}
  add('%PDF-1.4\n%\xff\xff\xff\xff\n');obj(1,['<< /Type /Catalog /Pages 2 0 R >>']);obj(2,['<< /Type /Pages /Kids [3 0 R] /Count 1 >>']);obj(3,['<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>']);let commands='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q\n';obj(4,[`<< /Length ${commands.length} >>\nstream\n${commands}endstream`]);offsets[5]=len;add(`5 0 obj\n<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);add(jpegBytes);add('\nendstream\nendobj\n');let xoff=len;add('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)add(String(offsets[i]).padStart(10,'0')+' 00000 n \n');add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xoff}\n%%EOF`);let out=new Uint8Array(len),pos=0;for(let b of nodes){out.set(b,pos);pos+=b.length;}return new Blob([out],{type:'application/pdf'});}
