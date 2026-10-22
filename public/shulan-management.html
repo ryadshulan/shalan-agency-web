@@ -371,18 +371,19 @@ body{overflow-x:hidden}
     </div>
   </section>
   <section class="section" id="page-reports">
-   <div class="report-layout"><div class="panel report-settings"><div class="panel-head wide"><div><h2>تقرير الإنجازات المكتملة</h2><p>يُعبّأ على ورقتك الرسمية الأصلية من الأعمال المكتملة فقط</p></div></div>
+   <div class="report-layout"><div class="panel report-settings"><div class="panel-head wide"><div><h2>تقرير أعمال لصالح العميل</h2><p>جميع الأعمال المكتملة وعدد تعديلاتها على مذكرتك الرسمية</p></div></div>
     <div class="field"><label for="reportClient">العميل</label><select id="reportClient"></select></div>
     <div class="field"><label for="reportFrom">من تاريخ</label><input type="date" id="reportFrom"></div>
     <div class="field"><label for="reportTo">إلى تاريخ</label><input type="date" id="reportTo"></div>
-    <div class="field wide"><label for="reportNote">لمسات أو ملاحظات على الأعمال المنجزة (اختياري)</label><textarea id="reportNote" placeholder="مثال: تنفيذ المواد وفق متطلبات الهوية البصرية المعتمدة"></textarea></div>
-    <div class="field wide"><label for="reportImpact">أبرز المخرجات أو القيمة المقدمة (اختياري)</label><textarea id="reportImpact" placeholder="مثال: إعداد مجموعة موحدة من التصاميم جاهزة للنشر والطباعة"></textarea></div>
+    <label class="checkbox-row wide"><input type="checkbox" id="reportShowSummary" checked> إظهار ملخص الإنجازات في هذا التقرير (اختياري)</label>
+    <div class="field wide" id="reportNoteField"><label for="reportNote">نص ملخص الإنجازات (اختياري)</label><textarea id="reportNote" placeholder="مثال: تنفيذ المواد وفق متطلبات الهوية البصرية المعتمدة"></textarea></div>
+    <div class="field wide" id="reportImpactField"><label for="reportImpact">القيمة المقدمة (اختياري)</label><textarea id="reportImpact" placeholder="مثال: إعداد مجموعة موحدة من التصاميم جاهزة للنشر والطباعة"></textarea></div>
     <label class="checkbox-row wide"><input type="checkbox" id="reportFinance"> إظهار الملخص المالي للعميل (اختياري)</label>
     <div class="hint wide">يشمل التقرير كشف المبالغ التي دفعتها عن العميل، والمبالغ المستردة، والرصيد المطلوب عند نهاية الفترة؛ وهي مستقلة عن إيرادات خدماتك.</div>
-    <div class="hint wide">يُظهر التقرير <strong>إجمالي الأعمال المكتملة فقط</strong> وملخصًا مختصرًا دون تفاصيل المهام أو تصنيفات الخدمات. الأعمال غير المكتملة لا تظهر في التقرير.</div>
+    <div class="hint wide">يذكر التقرير <strong>جميع الأعمال المكتملة خلال الفترة</strong> مع عدد التعديلات لكل عمل (دون إظهار رقم صفر)، ويمكن إظهار ملخص الإنجازات أو إخفاؤه حسب العميل والتقرير.</div>
     <button class="btn primary w100 wide" id="downloadPdf">⬇ تنزيل التقرير PDF</button><button class="btn w100 wide" id="shareWhatsapp">↗ مشاركة التقرير عبر واتساب</button>
     <p class="small-help wide">على الجوال يمكن فتح نافذة مشاركة PDF مباشرة إذا كان الجهاز يدعمها. على الكمبيوتر يُنزّل التقرير وتفتح رسالة واتساب، ثم تُرفقه يدويًا. لا يوجد إرسال تلقائي دون موافقتك أو ربط واجهة واتساب الرسمية.</p>
-   </div><div class="preview-area"><div class="preview-top"><strong>معاينة تقرير الإنجازات على المذكرة الأصلية</strong><span class="muted-tag">A4 · صفحة واحدة</span></div><canvas id="reportCanvas" width="1448" height="2048" aria-label="معاينة التقرير"></canvas><div id="cashReportPreview" class="cash-statement-preview" hidden><div class="muted-tag">معاينة كشف المبالغ التفصيلي (صفحات إضافية في PDF)</div><canvas id="cashReportCanvas" width="1448" height="2048" aria-label="معاينة كشف مبالغ العميل"></canvas></div></div></div>
+   </div><div class="preview-area"><div class="preview-top"><strong>معاينة تقرير الإنجازات على المذكرة الأصلية</strong><span class="muted-tag">A4 · صفحة واحدة</span></div><canvas id="reportCanvas" width="1448" height="2048" aria-label="معاينة التقرير"></canvas><div id="workReportPreview" class="cash-statement-preview" hidden><div class="muted-tag">معاينة تكملة جدول الأعمال (صفحات إضافية في PDF)</div><canvas id="workReportCanvas" width="1448" height="2048" aria-label="معاينة متابعة الأعمال المكتملة"></canvas></div><div id="cashReportPreview" class="cash-statement-preview" hidden><div class="muted-tag">معاينة كشف المبالغ التفصيلي (صفحات إضافية في PDF)</div><canvas id="cashReportCanvas" width="1448" height="2048" aria-label="معاينة كشف مبالغ العميل"></canvas></div></div></div>
   </section>
   <section class="section" id="page-backup"><div id="cloudSettings">
  <h3>☁ تخزين بياناتك على Supabase</h3>
@@ -700,9 +701,10 @@ $('#cashFrom').value=monthStart();$('#cashTo').value=localToday();
 
 const bg=new Image();bg.src=bgUrl;bg.onload=()=>renderReport();
 function reportKey(){return ($('#reportClient').value||'')+'|'+($('#reportFrom').value||'')+'|'+($('#reportTo').value||'');}
-function loadReportText(){let o=db.reportNotes[reportKey()]||{};$('#reportNote').value=o.note||'';$('#reportImpact').value=o.impact||'';$('#reportFinance').checked=!!o.finance;}
-function saveReportText(){let key=reportKey();db.reportNotes[key]={...(db.reportNotes[key]||{}),note:$('#reportNote').value,impact:$('#reportImpact').value,finance:$('#reportFinance').checked};save();renderReport();}
-$('#reportClient').addEventListener('change',()=>{loadReportText();renderReport();});['reportFrom','reportTo'].forEach(id=>$('#'+id).addEventListener('change',()=>{loadReportText();renderReport();}));['reportNote','reportImpact'].forEach(id=>$('#'+id).addEventListener('input',saveReportText));$('#reportFinance').addEventListener('change',saveReportText);
+function loadReportText(){let o=db.reportNotes[reportKey()]||{};$('#reportNote').value=o.note||'';$('#reportImpact').value=o.impact||'';$('#reportFinance').checked=!!o.finance;$('#reportShowSummary').checked=o.summaryEnabled!==false;syncReportSummaryFields();}
+function syncReportSummaryFields(){const enabled=$('#reportShowSummary').checked;$('#reportNoteField').classList.toggle('hidden',!enabled);$('#reportImpactField').classList.toggle('hidden',!enabled);}
+function saveReportText(){let key=reportKey();db.reportNotes[key]={...(db.reportNotes[key]||{}),note:$('#reportNote').value,impact:$('#reportImpact').value,finance:$('#reportFinance').checked,summaryEnabled:$('#reportShowSummary').checked};save();renderReport();}
+$('#reportClient').addEventListener('change',()=>{loadReportText();renderReport();});['reportFrom','reportTo'].forEach(id=>$('#'+id).addEventListener('change',()=>{loadReportText();renderReport();}));['reportNote','reportImpact'].forEach(id=>$('#'+id).addEventListener('input',saveReportText));$('#reportFinance').addEventListener('change',saveReportText);$('#reportShowSummary').addEventListener('change',()=>{syncReportSummaryFields();saveReportText();});
 const pal={wine:'#661a2a',wine2:'#90384b',ink:'#27232a',muted:'#766e72',beige:'#e9d9c7',light:'#f9f5f2',line:'#e8dad4',white:'#ffffff',green:'#177c5b'};
 // Client-facing report: only completed tasks appear in statistics, categories, item lists and optional financial values.
 // Keep this distinct from internal management data; unfinished tasks remain safely in db.jobs.
