@@ -300,6 +300,11 @@ body{overflow-x:hidden}
 @media(max-width:550px){.cash-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cash-form .field{min-width:0}.cash-form .field label{font-size:11px}.cash-form .field input,.cash-form .field select{font-size:13px}.cash-note,.cash-buttons{grid-column:1/-1}.cash-panel,.cash-ledger{padding:13px}.cash-totals{grid-template-columns:1fr 1fr;gap:8px}.cash-total{padding:10px}.cash-total dl>div{font-size:11px}.cash-total h3{font-size:13px}}
 @media(max-width:359px){.cash-totals{grid-template-columns:1fr}}
 </style>
+<style id="shulan-revision-counter">
+.task-rail .revision-control{font-variant-numeric:tabular-nums;line-height:1}
+.task-rail .revision-control .revision-number{font-size:14px;font-weight:900;letter-spacing:-.35px}
+.task-rail .revision-control:has(.revision-number){overflow:hidden}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -447,7 +452,7 @@ function renderDash(){let jobs=filteredJobs($('#dashClient').value||'all',$('#da
 }
 function renderClients(){let l=$('#clientsList');l.innerHTML=db.clients.length?db.clients.map(c=>{let jobs=db.jobs.filter(j=>j.clientId===c.id);return `<div class="client-card"><h3>${safe(c.name)}</h3><p>${safe(c.phone||'لا يوجد رقم تواصل')}</p><div class="frow"><span class="pill">${fmtNum(jobs.length)} عمل</span><span class="pill done">${fmtNum(jobs.filter(j=>j.status==='done').length)} منجز</span></div><div class="row"><button class="btn small soft" data-action="client-report" data-id="${safe(c.id)}">تقرير العميل</button><div class="frow"><button class="btn small" data-action="edit-client" data-id="${safe(c.id)}">تعديل</button><button class="btn small danger" data-action="delete-client" data-id="${safe(c.id)}">حذف</button></div></div></div>`;}).join(''):'<div class="empty">أضف عميلك الأول</div>';}
 function renderJobs(){let client=$('#jobsClient').value||'all',st=$('#jobsStatus').value,search=$('#jobsSearch').value.trim().toLowerCase();let jobs=db.jobs.filter(j=>(client==='all'||j.clientId===client)&&(st==='all'||j.status===st)&&(!search||[j.title,j.category,j.project,j.description].join(' ').toLowerCase().includes(search))).sort(timeSort);
- $('#jobsTable').innerHTML=jobs.length?`<table class="data-table"><thead><tr><th>العمل والمشروع</th><th>العميل</th><th>الخدمة</th><th>التاريخ</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>${jobs.map(j=>{let c=db.clients.find(x=>x.id===j.clientId);return `<tr><td><b>${safe(j.title)}</b><em>${safe(j.project||'بدون اسم مشروع')}</em></td><td>${safe(c?.name||'محذوف')}</td><td>${safe(j.category)}</td><td>${safe(j.date)}</td><td><span class="pill ${safe(j.status)}">${statustext[j.status]||'—'}</span></td><td><div class="frow">${j.status==='done'?`<button class="btn small soft" data-action="reopen-job" data-id="${safe(j.id)}">إعادة فتح</button>`:''}<button class="btn small" data-action="edit-job" data-id="${safe(j.id)}">تعديل</button><button class="btn small danger" data-action="delete-job" data-id="${safe(j.id)}">حذف</button></div></td></tr>`}).join('')}</tbody></table>`:'<div class="empty"><span class="symbol">▤</span><b>لا توجد أعمال مطابقة</b>أضف عملًا أو غيّر خيارات التصفية</div>';}
+ $('#jobsTable').innerHTML=jobs.length?`<table class="data-table"><thead><tr><th>العمل والمشروع</th><th>العميل</th><th>الخدمة</th><th>التاريخ</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>${jobs.map(j=>{let c=db.clients.find(x=>x.id===j.clientId);return `<tr><td><b>${safe(j.title)}</b><em>${safe(j.project||'بدون اسم مشروع')}${recordedRevisionCount(j)?' • '+fmtNum(recordedRevisionCount(j))+' تعديل':''}</em></td><td>${safe(c?.name||'محذوف')}</td><td>${safe(j.category)}</td><td>${safe(j.date)}</td><td><span class="pill ${safe(j.status)}">${statustext[j.status]||'—'}</span></td><td><div class="frow">${j.status==='done'?`<button class="btn small soft" data-action="reopen-job" data-id="${safe(j.id)}">إعادة فتح</button>`:''}<button class="btn small" data-action="edit-job" data-id="${safe(j.id)}">تعديل</button><button class="btn small danger" data-action="delete-job" data-id="${safe(j.id)}">حذف</button></div></td></tr>`}).join('')}</tbody></table>`:'<div class="empty"><span class="symbol">▤</span><b>لا توجد أعمال مطابقة</b>أضف عملًا أو غيّر خيارات التصفية</div>';}
 function field(name,label,html,full=false){return `<div class="field ${full?'full':''}"><label for="field_${name}">${label}</label>${html}</div>`;}
 function inp(n,value='',type='text',extra=''){return `<input id="field_${n}" name="${n}" type="${type}" value="${safe(value)}" ${extra}>`;}
 function select(n,opts,value){return `<select id="field_${n}" name="${n}">${opts.map(([v,l])=>`<option value="${safe(v)}" ${v===value?'selected':''}>${safe(l)}</option>`).join('')}</select>`;}
@@ -490,6 +495,25 @@ function changeJobStatus(id,newStatus){
  save();renderAll();
  alertToast(newStatus==='done'?'تم إنجاز المهمة. ستبقى محفوظة في السجل والتقرير.':newStatus==='review'?'تم تحويل المهمة إلى تحت المراجعة، ولن تختفي من القائمة.':'تم تحديث المهمة وحالتها.');
 }
+
+function recordedRevisionCount(job){
+ const n=Number(job?.revisionCount??0);
+ return Number.isSafeInteger(n)&&n>=0?n:0;
+}
+// Each intentional press records one new revision; this is not a toggle.
+function registerTaskRevision(id){
+ const job=db.jobs.find(j=>j.id===id);
+ if(!job||job.status==='done')return;
+ const now=new Date().toISOString();
+ if(job.status!=='review')applyStatus(job,'review');
+ job.revisionCount=recordedRevisionCount(job)+1;
+ job.updatedAt=now;
+ if(!Array.isArray(job.history))job.history=[];
+ job.history.push({action:'revision',count:job.revisionCount,at:now});
+ if(job.history.length>100)job.history=job.history.slice(-100);
+ save();renderAll();
+ alertToast('تم تسجيل التعديل رقم '+job.revisionCount+' وحفظه في سجل العميل.');
+}
 function railSorted(jobs){
  const order={review:0,active:1,pending:2};
  return jobs.sort((a,b)=>(order[a.status]??3)-(order[b.status]??3)||timeSort(a,b));
@@ -515,13 +539,14 @@ function renderTaskRail(){
  $('#taskRailList').innerHTML=visible.length?visible.map(j=>{
    const c=db.clients.find(c=>c.id===j.clientId);
    const review=j.status==='review';
+   const revisionCount=recordedRevisionCount(j);
    return `<article class="task-item ${review?'is-review':''}" data-job-id="${safe(j.id)}">
       <div class="task-copy">
         <div class="task-title">${safe(j.title)}</div>
         <div class="task-client">${safe(c?.name||'عميل غير موجود')}</div>
       </div>
       <div class="task-actions">
-        <button type="button" class="task-action review-control ${review?'selected':''}" data-rail-action="review" data-id="${safe(j.id)}" aria-pressed="${review}" aria-label="تحت المراجعة: ${safe(j.title)}" title="تحت المراجعة">${review?'✓':'◷'}</button>
+        <button type="button" class="task-action review-control ${review?'selected':''} revision-control" data-rail-action="review" data-id="${safe(j.id)}" aria-label="تسجيل تعديل جديد لمهمة ${safe(j.title)}، العدد الحالي ${revisionCount}" title="تسجيل تعديل جديد — الحالي: ${revisionCount}"><span class="revision-number">${revisionCount||'◷'}</span></button>
         <button type="button" class="task-action finish-control" data-rail-action="done" data-id="${safe(j.id)}" aria-label="انتهت المهمة: ${safe(j.title)}" title="انتهت">✓</button>
       </div>
     </article>`;
@@ -560,7 +585,7 @@ $('#quickTaskForm').addEventListener('submit',e=>{
  }
  if(!db.clients.some(c=>c.id===clientId)){alertToast('اختر العميل الصحيح.');return;}
  const when=new Date().toISOString();
- db.jobs.push({id:uid(),clientId,title,project:'',category:'',status:'pending',date:localToday(),dueDate:'',description:'',price:'',cost:'',paid:'',currency:'ر.ي',createdAt:when,updatedAt:when,history:[{from:null,to:'pending',at:when}]});
+ db.jobs.push({id:uid(),clientId,title,project:'',category:'',status:'pending',date:localToday(),dueDate:'',description:'',price:'',cost:'',paid:'',currency:'ر.ي',revisionCount:0,createdAt:when,updatedAt:when,history:[{from:null,to:'pending',at:when}]});
  save();$('#quickTaskForm').reset();$('#quickTaskClient').value=clientId;$('#taskRailFilter').value='all';renderAll();
  alertToast('تم حفظ المهمة وربطها بالعميل وتحديث جميع التقارير.');
  $('#quickTaskName').focus();
@@ -572,7 +597,7 @@ document.addEventListener('click',e=>{
   if(!j||j.status==='done')return;
   if(button.dataset.railAction==='done'){changeJobStatus(j.id,'done');return;}
   if(button.dataset.railAction==='review'){
-    changeJobStatus(j.id,j.status==='review'?(j.reviewReturnStatus==='pending'?'pending':'active'):'review');
+    registerTaskRevision(j.id);
   }
 });
 $('#showCompletedRail').addEventListener('click',()=>{page('jobs');$('#jobsStatus').value='done';$('#jobsClient').value='all';renderJobs();});
@@ -688,7 +713,7 @@ function getReportData(){
  let cat={};jobs.forEach(j=>cat[j.category||'خدمات أخرى']=(cat[j.category||'خدمات أخرى']||0)+1);
  let projects=[...new Set(jobs.map(j=>String(j.project||'').trim()).filter(Boolean))];
  let totals={};for(const j of jobs){let k=j.currency||'ر.ي';totals[k]??={price:0,paid:0,cost:0};totals[k].price+=Number(j.price)||0;totals[k].paid+=Number(j.paid)||0;totals[k].cost+=Number(j.cost)||0;}
- return {client:c,jobs,projects,cat:Object.entries(cat).sort((a,b)=>b[1]-a[1]),totals,cash:cashStatement(cid,$('#reportFrom').value,$('#reportTo').value)};
+ return {client:c,jobs,projects,cat:Object.entries(cat).sort((a,b)=>b[1]-a[1]),totals,revisionCount:jobs.reduce((sum,job)=>sum+recordedRevisionCount(job),0),cash:cashStatement(cid,$('#reportFrom').value,$('#reportTo').value)};
 }
 function roundRect(ctx,x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.lineWidth=2;ctx.strokeStyle=stroke;ctx.stroke();}}
 function drawText(ctx,str,x,y,px=25,color=pal.ink,weight=400,align='right'){ctx.save();ctx.font=`${weight} ${px}px Tahoma, "Segoe UI", Arial, sans-serif`;ctx.textBaseline='middle';ctx.direction='rtl';ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(String(str),x,y);ctx.restore();}
@@ -726,6 +751,11 @@ function reportCanvasDraw(canvas,scale=1){
  drawText(ctx,'الأعمال المكتملة خلال الفترة',1210,579,35,pal.ink,700);
  drawText(ctx,fmtNum(completed.length),1320,700,83,pal.wine,800);
  drawText(ctx,'عملًا منجزًا',1090,699,27,pal.muted,700);
+ // A separate count of revision requests associated with completed jobs only.
+ ctx.fillStyle='#e8dad4';ctx.fillRect(732,544,2,175);
+ drawText(ctx,'عمليات التعديل',662,579,32,pal.ink,700);
+ drawText(ctx,fmtNum(d.revisionCount),663,694,75,pal.wine,800);
+ drawText(ctx,'تعديلًا مسجلًا',442,699,24,pal.muted,700);
 
 
  heading(ctx,'ملخص الإنجازات',839);
