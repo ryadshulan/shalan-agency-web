@@ -1,0 +1,91 @@
+name: Test Shulan revision counters
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-revisions.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  revisions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless browser
+        run: npm install --prefix /tmp/shulan-revision-test puppeteer-core@24 --no-audit --no-fund
+      - name: Verify repeated clicks, completion, reopen, client and date report filtering
+        env:
+          NODE_PATH: /tmp/shulan-revision-test/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs'),path=require('path');
+          const binary=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(x=>fs.existsSync(x));
+          if(!binary)throw Error('Chrome unavailable');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:binary,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            const errors=[];
+            try{
+              const page=await browser.newPage();
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('file://'+path.resolve('public/shulan-management.html'),{waitUntil:'domcontentloaded',timeout:60000});
+              await page.waitForFunction(()=>typeof registerTaskRevision==='function'&&typeof createReportPdf==='function'&&bg.complete&&bg.naturalWidth>0,{timeout:45000});
+              const result=await page.evaluate(async()=>{
+                db={clients:[{id:'a',name:'عميل أ',phone:'',details:''},{id:'b',name:'عميل ب',phone:'',details:''}],
+                  jobs:[
+                    {id:'new',title:'تصميم إعلان',clientId:'a',date:'2026-10-21',status:'pending',history:[]},
+                    {id:'another',title:'مهمة مفتوحة',clientId:'a',date:'2026-10-21',status:'review',history:[]},
+                    {id:'already',title:'عمل مكتمل سابقًا',clientId:'a',date:'2026-10-20',status:'done',revisionCount:2,history:[]},
+                    {id:'other',title:'عمل عميل ب',clientId:'b',date:'2026-10-21',status:'done',revisionCount:7,history:[]},
+                    {id:'old',title:'عمل قديم',clientId:'a',date:'2026-09-01',status:'done',revisionCount:19,history:[]}
+                  ],
+                  reportNotes:{},cashMovements:[]};
+                let saves=0;save=()=>{saves++};
+                document.querySelector('#cloudGate').style.display='none';
+                renderAll();
+                const button=()=>document.querySelector('[data-rail-action="review"][data-id="new"]');
+                for(let i=0;i<3;i++)button().click();
+                const j=db.jobs.find(x=>x.id==='new');
+                const first={counter:j.revisionCount,status:j.status,buttonText:button()?.textContent.trim(),
+                  events:j.history.filter(x=>x.action==='revision').length,
+                  stillVisible:!!document.querySelector('.task-item[data-job-id="new"]')};
+                document.querySelector('[data-rail-action="done"][data-id="new"]').click();
+                document.querySelector('#reportClient').value='a';
+                document.querySelector('#reportFrom').value='2026-10-01';
+                document.querySelector('#reportTo').value='2026-10-31';
+                loadReportText();renderReport();
+                const completed=getReportData(),previewCount=completed.revisionCount;
+                const pdf=createReportPdf(),bytes=pdf.size;
+                const finishedHidden=!document.querySelector('.task-item[data-job-id="new"]');
+                changeJobStatus('new','active');
+                const preserved=recordedRevisionCount(j);
+                const buttonBefore=button()?.textContent.trim();
+                button().click();
+                changeJobStatus('new','done');
+                const final=getReportData();
+                const result={
+                  first,finishedHidden,previewCount,
+                  isCompletedOnly:completed.jobs.length===2,
+                  openNotCounted:recordedRevisionCount(db.jobs.find(x=>x.id==='another'))===0,
+                  otherClientExcluded:!completed.jobs.some(x=>x.clientId==='b'),
+                  preserved,buttonBefore,
+                  finalCounter:recordedRevisionCount(j),
+                  finalReportCount:final.revisionCount,
+                  pdfBytes:bytes,pdfType:pdf.type,
+                  saves
+                };
+                return result;
+              });
+              console.log('REVISION QA',JSON.stringify(result));
+              if(errors.length)throw Error('Browser errors: '+errors.join(', '));
+              const assert=(x,msg)=>{if(!x)throw Error(msg);};
+              assert(result.first.counter===3&&result.first.status==='review'&&result.first.buttonText==='3'&&result.first.events===3&&result.first.stillVisible,'Repeated revision clicks malfunction');
+              assert(result.finishedHidden&&result.previewCount===5&&result.isCompletedOnly&&result.openNotCounted&&result.otherClientExcluded,'Completed-only client report malfunction');
+              assert(result.preserved===3&&result.buttonBefore==='3'&&result.finalCounter===4&&result.finalReportCount===6,'Reopen loses revision count');
+              assert(result.pdfType==='application/pdf'&&result.pdfBytes>50000&&result.saves>=7,'PDF export or save queue malfunction');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1);});
+          NODE
