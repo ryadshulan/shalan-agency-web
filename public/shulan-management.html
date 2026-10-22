@@ -726,68 +726,102 @@ function lines(ctx,value,x,startY,maxW,sz=25,lh=42,maxLines=3,color=pal.ink,weig
 function heading(ctx,label,y){roundRect(ctx,62,y,1323,67,13,'#f4ece9');roundRect(ctx,1322,y+9,49,49,10,pal.wine);drawText(ctx,'▤',1346,y+33,27,pal.white,700,'center');drawText(ctx,label,1305,y+35,32,pal.wine,700);}
 function numCard(ctx,x,y,w,title,num,glyph){roundRect(ctx,x,y,w,177,15,'#fcfaf8','#e5d7d0');roundRect(ctx,x+20,y+25,71,71,36,'#f1e5dc');drawText(ctx,glyph,x+55,y+62,36,pal.wine,700,'center');drawText(ctx,String(num),x+w-22,y+72,64,pal.wine,800);drawText(ctx,title,x+w-22,y+129,26,pal.ink,700);}
 function pdfRange(a,b){const parse=x=>{let [y,m,d]=String(x||'').split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:x};return `${parse(a)} - ${parse(b)}`;}
+
+// Show every completed task in a concise, legible table; zero revisions appear as a blank cell.
+const firstPageWorkCount=8;
+const continuedPageWorkCount=18;
+function drawCompletedWorks(ctx,jobs,firstIndex,topY,rowHeight){
+ roundRect(ctx,62,topY,1323,59,10,'#f4ece9');
+ drawText(ctx,'م',1345,topY+31,22,pal.wine,700);
+ drawText(ctx,'العمل المنجز',1240,topY+31,26,pal.wine,700);
+ drawText(ctx,'التاريخ',444,topY+31,22,pal.wine,700);
+ drawText(ctx,'التعديلات',223,topY+31,22,pal.wine,700);
+ jobs.forEach((j,i)=>{
+  const y=topY+97+i*rowHeight;
+  if(i%2===1)roundRect(ctx,62,y-29,1323,rowHeight-2,6,'#fbf7f6');
+  drawText(ctx,fmtNum(firstIndex+i+1),1351,y,22,pal.muted,700);
+  drawText(ctx,truncate(ctx,j.title,760,25,650),1240,y,25,pal.ink,650);
+  drawText(ctx,j.date||'—',444,y,21,pal.muted);
+  const revisions=recordedRevisionCount(j);
+  if(revisions>0)drawText(ctx,fmtNum(revisions),223,y,26,pal.wine,800);
+  divider(ctx,75,y+27,1290);
+ });
+}
 function reportCanvasDraw(canvas,scale=1){
  const W=1448,H=2048;
  canvas.width=W*scale;canvas.height=H*scale;
- let ctx=canvas.getContext('2d');ctx.setTransform(scale,0,0,scale,0,0);
+ const ctx=canvas.getContext('2d');ctx.setTransform(scale,0,0,scale,0,0);
  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
  if(bg.complete&&bg.naturalWidth)ctx.drawImage(bg,0,0,W,H);
  const d=getReportData(),completed=d.jobs;
- // Preserve the original official letterhead and insert live details in the cleared header area.
- drawText(ctx,'تقرير الإنجازات الشهرية',385,70,32,'#f8e8d8',800);
+ drawText(ctx,'تقرير أعمال لصالح',385,70,31,'#f8e8d8',800);
  drawText(ctx,truncate(ctx,d.client?.name||'اختر عميلًا',365,31,800),385,117,31,'#f8e8d8',800);
  drawText(ctx,pdfRange($('#reportFrom').value,$('#reportTo').value),385,166,27,'#f8e8d8',700);
 
- drawText(ctx,'ملخص الأعمال المنجزة',1368,288,43,pal.wine,800);
- roundRect(ctx,1064,324,304,5,2,pal.wine2);
-
- // Concise client report: show completed count, without individual task titles or service types.
+ drawText(ctx,'الأعمال المكتملة خلال الفترة',1368,288,42,pal.wine,800);
+ roundRect(ctx,1032,324,336,5,2,pal.wine2);
  const intro=completed.length
-   ? `يسرنا مشاركة ملخص إنجازاتنا لصالح ${d.client?.name||'عميلنا'} خلال الفترة المحددة، مع التركيز على حصيلة الأعمال المكتملة.`
-   : (d.cash.hasContent?'يُقدَّم هذا التقرير لعرض كشف المبالغ المدفوعة نيابة عن العميل خلال الفترة المحددة.':'لا توجد أعمال مكتملة أو مبالغ مسجلة خلال الفترة المحددة.');
- lines(ctx,intro,1357,374,1250,27,43,2,pal.ink,400);
+  ?'نستعرض الأعمال المكتملة لصالح '+(d.client?.name||'العميل')+' خلال الفترة المحددة، مع توضيح عدد عمليات التعديل المسجلة لكل عمل.'
+  :(d.cash.hasContent?'يتضمن التقرير كشف المبالغ المدفوعة نيابة عن العميل، ولا توجد أعمال مكتملة ضمن الفترة.':'لا توجد أعمال مكتملة في الفترة المحددة.');
+ lines(ctx,intro,1350,379,1245,25,37,2,pal.ink);
 
- roundRect(ctx,62,505,1323,256,20,'#fcf9f7','#e4d6d0');
- roundRect(ctx,1250,540,92,92,46,'#efe2dd');
- drawText(ctx,'✓',1296,585,50,pal.green,800,'center');
- drawText(ctx,'الأعمال المكتملة خلال الفترة',1210,579,35,pal.ink,700);
- drawText(ctx,fmtNum(completed.length),1320,700,83,pal.wine,800);
- drawText(ctx,'عملًا منجزًا',1090,699,27,pal.muted,700);
- // A separate count of revision requests associated with completed jobs only.
- ctx.fillStyle='#e8dad4';ctx.fillRect(732,544,2,175);
- drawText(ctx,'عمليات التعديل',662,579,32,pal.ink,700);
- drawText(ctx,fmtNum(d.revisionCount),663,694,75,pal.wine,800);
- drawText(ctx,'تعديلًا مسجلًا',442,699,24,pal.muted,700);
+ roundRect(ctx,62,467,1323,133,15,'#fcf9f7','#e5d7d0');
+ drawText(ctx,'الأعمال المنجزة',1338,502,25,pal.ink,700);
+ drawText(ctx,fmtNum(completed.length),1339,555,53,pal.wine,800);
+ ctx.fillStyle='#e6d8d3';ctx.fillRect(724,484,2,95);
+ drawText(ctx,'إجمالي التعديلات',669,502,25,pal.ink,700);
+ drawText(ctx,fmtNum(d.revisionCount),669,555,53,pal.wine,800);
 
-
- heading(ctx,'ملخص الإنجازات',839);
- const note=$('#reportNote').value.trim(),impact=$('#reportImpact').value.trim();
- const summary=note||'نعتز بثقة عملائنا وبالأعمال التي جرى إنجازها خلال هذه الفترة، ونواصل تقديم حلول إعلانية باهتمام وجودة.';
- lines(ctx,summary,1325,948,1217,28,46,3,pal.ink,400);
- if(impact)lines(ctx,impact,1325,1104,1217,22,36,2,pal.muted,400);
-
- if(d.cash.hasContent){
-  heading(ctx,'كشف المبالغ المدفوعة نيابة عن العميل',1247);
-  const currencies=d.cash.totals.filter(s=>s.opening||s.advances||s.received||s.closing);
-  currencies.slice(0,4).forEach((s,i)=>{
-   const y=1370+i*92;
-   drawText(ctx,s.currency,1350,y,27,pal.wine,800);
-   const debt=s.closing<0?'دائن للعميل':'الرصيد المطلوب';
-   const label='رصيد أول الفترة: '+currencyFmt(s.opening)+'  |  دفعات: '+currencyFmt(s.advances)+'  |  استلمنا: '+currencyFmt(s.received)+'  |  '+debt+': '+currencyFmt(Math.abs(s.closing));
-   drawText(ctx,truncate(ctx,label,1180,21,600),1323,y+37,21,pal.ink,600);
-  });
-  if(currencies.length>4)drawText(ctx,'توجد عملات إضافية في السجل المالي.',1345,1757,20,pal.muted);
-  if(d.cash.movements.length)drawText(ctx,'عدد الحركات خلال الفترة: '+fmtNum(d.cash.movements.length)+' — كشف تفصيلي في الصفحات التالية.',1340,1816,22,pal.wine,700);
+ heading(ctx,'قائمة الأعمال المنجزة',627);
+ if(completed.length){
+  drawCompletedWorks(ctx,completed.slice(0,firstPageWorkCount),0,710,55);
+  if(completed.length>firstPageWorkCount)
+   drawText(ctx,'تُعرض بقية الأعمال ('+fmtNum(completed.length-firstPageWorkCount)+') في الصفحات التالية.',1345,1257,21,pal.wine,700);
  }else{
-  divider(ctx,188,1585,1090);
-  drawText(ctx,'شكرًا لثقتكم',1325,1660,34,pal.wine,800);
-  lines(ctx,'نعتز بشراكتنا معكم، ونسعد بأن تكون أعمالنا جزءًا من حضور علامتكم التجارية.',1325,1740,1200,24,42,2,pal.ink,400);
+  drawText(ctx,'لا توجد أعمال مكتملة مسجلة لهذا العميل خلال الفترة المحددة.',1340,836,25,pal.muted);
  }
- // Optional completed-work financial totals only; hidden by default.
+
+ if($('#reportShowSummary').checked){
+  heading(ctx,'ملخص الإنجازات',1311);
+  const note=$('#reportNote').value.trim(),impact=$('#reportImpact').value.trim();
+  const summary=note||'نعتز بثقتكم، ويسعدنا مواصلة تقديم أعمال إعلانية تعزز حضور علامتكم التجارية.';
+  lines(ctx,summary,1340,1413,1230,23,38,2,pal.ink);
+  if(impact)lines(ctx,impact,1340,1514,1230,21,34,1,pal.muted);
+ }
+ if(d.cash.hasContent){
+  heading(ctx,'المبالغ المدفوعة نيابة عن العميل',1595);
+  d.cash.totals.filter(s=>s.opening||s.advances||s.received||s.closing).slice(0,3).forEach((s,i)=>{
+   const y=1702+i*69;
+   drawText(ctx,s.currency,1340,y,24,pal.wine,800);
+   const txt='سابق: '+currencyFmt(s.opening)+' | دفعت: '+currencyFmt(s.advances)+' | استلمت: '+currencyFmt(s.received)+' | '+(s.closing<0?'رصيد دائن':'المطلوب')+': '+currencyFmt(Math.abs(s.closing));
+   drawText(ctx,truncate(ctx,txt,1170,20,700),1318,y+29,20,pal.ink,700);
+  });
+ }else if(!$('#reportShowSummary').checked){
+  drawText(ctx,'مع خالص التقدير — شعلان للدعاية والإعلان',1345,1755,24,pal.wine,700);
+ }
  if($('#reportFinance').checked){
-   let txt=Object.entries(d.totals).map(([cur,t])=>`${cur}: إجمالي المنجز ${currencyFmt(t.price)} / المستلم ${currencyFmt(t.paid)} / المتبقي ${currencyFmt(t.price-t.paid)}`).join('  |  ');
-   if(txt)drawText(ctx,truncate(ctx,txt,1250,19,700),1356,1954,19,pal.wine,700);
+  const txt=Object.entries(d.totals).map(([cur,t])=>cur+': إجمالي الأعمال '+currencyFmt(t.price)+' / المستلم '+currencyFmt(t.paid)+' / المتبقي '+currencyFmt(t.price-t.paid)).join('  |  ');
+  if(txt)drawText(ctx,truncate(ctx,txt,1240,18,650),1350,1950,18,pal.wine,650);
  }
+ return canvas;
+}
+function workStatementPageDraw(canvas,pageNumber=0,scale=1){
+ const W=1448,H=2048;
+ canvas.width=W*scale;canvas.height=H*scale;
+ const ctx=canvas.getContext('2d');ctx.setTransform(scale,0,0,scale,0,0);
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+ if(bg.complete&&bg.naturalWidth)ctx.drawImage(bg,0,0,W,H);
+ const d=getReportData(),remaining=d.jobs.slice(firstPageWorkCount);
+ const pages=Math.ceil(remaining.length/continuedPageWorkCount);
+ drawText(ctx,'تقرير أعمال لصالح',385,70,31,'#f8e8d8',800);
+ drawText(ctx,truncate(ctx,d.client?.name||'العميل',365,31,800),385,117,31,'#f8e8d8',800);
+ drawText(ctx,pdfRange($('#reportFrom').value,$('#reportTo').value),385,166,27,'#f8e8d8',700);
+ heading(ctx,'تابع قائمة الأعمال المنجزة',296);
+ drawText(ctx,'العميل: '+(d.client?.name||'—')+' — إجمالي الأعمال: '+fmtNum(d.jobs.length),1340,396,24,pal.muted);
+ const batch=remaining.slice(pageNumber*continuedPageWorkCount,(pageNumber+1)*continuedPageWorkCount);
+ drawCompletedWorks(ctx,batch,firstPageWorkCount+pageNumber*continuedPageWorkCount,459,66);
+ divider(ctx,154,1850,1100);
+ drawText(ctx,'صفحة الأعمال الإضافية '+fmtNum(pageNumber+1)+' من '+fmtNum(pages),1320,1900,21,pal.muted,600);
  return canvas;
 }
 
