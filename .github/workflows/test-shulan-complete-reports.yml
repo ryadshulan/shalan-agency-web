@@ -1,0 +1,113 @@
+name: Test Shulan complete work reports
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-complete-reports.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless Chrome driver
+        run: npm install --prefix /tmp/shulan-report-table puppeteer-core@24 --no-audit --no-fund
+      - name: Verify report rows, revisions, settings persistence and PDF pagination
+        env:
+          NODE_PATH: /tmp/shulan-report-table/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs'),path=require('path');
+          const chrome=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(fs.existsSync);
+          if(!chrome)throw Error('Chrome unavailable');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage();const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('file://'+path.resolve('public/shulan-management.html'),{waitUntil:'domcontentloaded',timeout:60000});
+              await page.waitForFunction(()=>typeof workStatementPageDraw==='function'&&typeof createReportPdf==='function'&&bg.complete&&bg.naturalWidth>0,{timeout:45000});
+              const result=await page.evaluate(async()=>{
+                const jobs=Array.from({length:43},(_,i)=>({
+                  id:'a'+i,clientId:'a',title:'عمل اختبار '+(i+1),date:'2026-10-22',
+                  status:'done',revisionCount:i===1?3:i===2?2:0,category:'',history:[]
+                }));
+                jobs.push({id:'open',clientId:'a',title:'مهمة غير مكتملة',date:'2026-10-22',status:'review',revisionCount:9});
+                jobs.push({id:'other',clientId:'b',title:'عمل عميل آخر',date:'2026-10-22',status:'done',revisionCount:11});
+                const movements=Array.from({length:20},(_,i)=>({
+                  id:'m'+i,clientId:'a',jobId:'a0',kind:i%3?'advance':'repayment',
+                  date:'2026-10-21',amount:100,currency:'ر.ي',note:'مبلغ اختبار'
+                }));
+                db={clients:[{id:'a',name:'عميل التجربة',phone:'',details:''},{id:'b',name:'عميل آخر',phone:'',details:''}],jobs,reportNotes:{},cashMovements:movements};
+                save=()=>{};renderAll();
+                document.querySelector('#reportClient').value='a';
+                document.querySelector('#reportFrom').value='2026-10-01';
+                document.querySelector('#reportTo').value='2026-10-31';
+                loadReportText();
+                const report=getReportData();
+                const isDefaultShown=document.querySelector('#reportShowSummary').checked;
+                const printed=[];const originalDraw=drawText;
+                drawText=function(ctx,str,...args){printed.push(String(str));return originalDraw(ctx,str,...args);};
+                const canvas=document.createElement('canvas');
+                reportCanvasDraw(canvas,1);
+                for(let i=0;i<2;i++)workStatementPageDraw(canvas,i,1);
+                const completeNames=printed.filter(x=>/^عمل اختبار \d+$/.test(x));
+                const summaryPrinted=printed.includes('ملخص الإنجازات');
+                const headingPrinted=printed.includes('تقرير أعمال لصالح');
+                const pendingExcluded=!printed.includes('مهمة غير مكتملة');
+                const otherExcluded=!printed.includes('عمل عميل آخر');
+                const noZeroRevisionSource=String(drawCompletedWorks).includes('if(revisions>0)');
+                const reviewColumn=printed.includes('التعديلات');
+                drawText=originalDraw;
+                const toggle=document.querySelector('#reportShowSummary');
+                toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));
+                const disabled=!!db.reportNotes[reportKey()]&&!db.reportNotes[reportKey()].summaryEnabled;
+                const noteHidden=document.querySelector('#reportNoteField').classList.contains('hidden');
+                const before=[];drawText=function(ctx,str,...args){before.push(String(str));return originalDraw(ctx,str,...args);};
+                reportCanvasDraw(canvas,1);
+                const optionalOmitted=!before.includes('ملخص الإنجازات');
+                drawText=originalDraw;
+                document.querySelector('#reportClient').value='b';loadReportText();
+                const otherClientDefault=document.querySelector('#reportShowSummary').checked;
+                document.querySelector('#reportClient').value='a';loadReportText();
+                const restoredDisabled=!document.querySelector('#reportShowSummary').checked;
+                document.querySelector('#reportFrom').value='2026-10-02';loadReportText();
+                const anotherPeriodDefault=document.querySelector('#reportShowSummary').checked;
+                document.querySelector('#reportFrom').value='2026-10-01';loadReportText();
+                const pdf=createReportPdf();
+                const text=new TextDecoder('latin1').decode(await pdf.arrayBuffer());
+                const pdfPages=(text.match(/\/Type \/Page \/Parent/g)||[]).length;
+                return {
+                  filteredJobCount:report.jobs.length,revisionTotal:report.revisionCount,
+                  printedCount:completeNames.length,uniquePrints:new Set(completeNames).size,
+                  firstTitle:completeNames[0],lastTitle:completeNames.at(-1),
+                  pendingExcluded,otherExcluded,
+                  noZeroRevisionSource,reviewColumn,isDefaultShown,
+                  summaryPrinted,headingPrinted,disabled,noteHidden,optionalOmitted,
+                  otherClientDefault,restoredDisabled,anotherPeriodDefault,
+                  pdfPages,pdfBytes:pdf.size,pdfMime:pdf.type,
+                  cashMovementCount:report.cash.movements.length,
+                  firstPageLimit:firstPageWorkCount,continuedLimit:continuedPageWorkCount
+                };
+              });
+              console.log('COMPLETE WORK REPORT QA',JSON.stringify(result));
+              if(errors.length)throw Error('Page errors: '+errors.join('; '));
+              const assert=(condition,msg)=>{if(!condition)throw Error(msg)};
+              assert(result.filteredJobCount===43&&result.revisionTotal===5,'Completed work filtering incorrect');
+              assert(result.printedCount===43&&result.uniquePrints===43,'Not all completed work names printed');
+              assert(result.firstTitle==='عمل اختبار 43'&&result.lastTitle==='عمل اختبار 1','Report order / continuation wrong');
+              assert(result.pendingExcluded&&result.otherExcluded,'Wrong client or incomplete tasks leaked');
+              assert(result.noZeroRevisionSource&&result.reviewColumn&&result.headingPrinted,'Revision column or heading missing');
+              assert(result.isDefaultShown&&result.summaryPrinted&&result.disabled&&result.noteHidden&&result.optionalOmitted,'Summary option does not work');
+              assert(result.otherClientDefault&&result.restoredDisabled&&result.anotherPeriodDefault,'Summary option not scoped by client and period');
+              assert(result.firstPageLimit===8&&result.continuedLimit===18,'Pagination limits not expected');
+              assert(result.cashMovementCount===20&&result.pdfPages===5,'Full PDF not paginated correctly');
+              assert(result.pdfMime==='application/pdf'&&result.pdfBytes>50000,'PDF output invalid');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
