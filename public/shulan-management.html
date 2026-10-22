@@ -735,7 +735,7 @@ function drawCompletedWorks(ctx,jobs,firstIndex,topY,rowHeight){
  drawText(ctx,'م',1345,topY+31,22,pal.wine,700);
  drawText(ctx,'العمل المنجز',1240,topY+31,26,pal.wine,700);
  drawText(ctx,'التاريخ',444,topY+31,22,pal.wine,700);
- drawText(ctx,'التعديلات',223,topY+31,22,pal.wine,700);
+ drawText(ctx,'عدد التعديلات',223,topY+31,21,pal.wine,700);
  jobs.forEach((j,i)=>{
   const y=topY+97+i*rowHeight;
   if(i%2===1)roundRect(ctx,62,y-29,1323,rowHeight-2,6,'#fbf7f6');
