@@ -789,9 +789,10 @@ function reportCanvasDraw(canvas,scale=1){
   if(impact)lines(ctx,impact,1340,1514,1230,21,34,1,pal.muted);
  }
  if(d.cash.hasContent){
-  heading(ctx,'المبالغ المدفوعة نيابة عن العميل',1595);
+  const financeTop=$('#reportShowSummary').checked?1595:1343;
+  heading(ctx,'المبالغ المدفوعة نيابة عن العميل',financeTop);
   d.cash.totals.filter(s=>s.opening||s.advances||s.received||s.closing).slice(0,3).forEach((s,i)=>{
-   const y=1702+i*69;
+   const y=financeTop+107+i*69;
    drawText(ctx,s.currency,1340,y,24,pal.wine,800);
    const txt='سابق: '+currencyFmt(s.opening)+' | دفعت: '+currencyFmt(s.advances)+' | استلمت: '+currencyFmt(s.received)+' | '+(s.closing<0?'رصيد دائن':'المطلوب')+': '+currencyFmt(Math.abs(s.closing));
    drawText(ctx,truncate(ctx,txt,1170,20,700),1318,y+29,20,pal.ink,700);
