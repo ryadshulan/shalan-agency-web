@@ -727,7 +727,7 @@ function heading(ctx,label,y){roundRect(ctx,62,y,1323,67,13,'#f4ece9');roundRect
 function numCard(ctx,x,y,w,title,num,glyph){roundRect(ctx,x,y,w,177,15,'#fcfaf8','#e5d7d0');roundRect(ctx,x+20,y+25,71,71,36,'#f1e5dc');drawText(ctx,glyph,x+55,y+62,36,pal.wine,700,'center');drawText(ctx,String(num),x+w-22,y+72,64,pal.wine,800);drawText(ctx,title,x+w-22,y+129,26,pal.ink,700);}
 function pdfRange(a,b){const parse=x=>{let [y,m,d]=String(x||'').split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:x};return `${parse(a)} - ${parse(b)}`;}
 
-// Show every completed task in a concise, legible table; zero revisions appear as a blank cell.
+// Client work rows: show completed tasks across as many PDF pages as needed; zero revision counts remain blank.
 const firstPageWorkCount=8;
 const continuedPageWorkCount=18;
 function drawCompletedWorks(ctx,jobs,firstIndex,topY,rowHeight){
