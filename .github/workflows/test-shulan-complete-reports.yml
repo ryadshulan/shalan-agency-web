@@ -62,7 +62,7 @@ jobs:
                 const pendingExcluded=!printed.includes('مهمة غير مكتملة');
                 const otherExcluded=!printed.includes('عمل عميل آخر');
                 const noZeroRevisionSource=String(drawCompletedWorks).includes('if(revisions>0)');
-                const reviewColumn=printed.includes('التعديلات');
+                const reviewColumn=printed.includes('عدد التعديلات');
                 drawText=originalDraw;
                 const toggle=document.querySelector('#reportShowSummary');
                 toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));
