@@ -862,7 +862,11 @@ function renderReport(){
  if(!bg.complete||!bg.naturalWidth)return;
  const c=$('#reportCanvas');if(!c)return;
  reportCanvasDraw(c,1);
- const entries=getReportData().cash.movements;
+ const data=getReportData();
+ const works=$('#workReportPreview'),extra=data.jobs.length>firstPageWorkCount;
+ works.hidden=!extra;
+ if(extra)workStatementPageDraw($('#workReportCanvas'),0,1);
+ const entries=data.cash.movements;
  const container=$('#cashReportPreview');
  container.hidden=!entries.length;
  if(entries.length)cashStatementPageDraw($('#cashReportCanvas'),0,1);
@@ -904,8 +908,15 @@ function canvasPdfPart(canvas){
 function createReportPdf(){
  if(!bg.complete||!bg.naturalWidth)throw Error('لم يكتمل تحميل ورقة التقرير');
  const canvas=document.createElement('canvas');
- reportCanvasDraw(canvas,2);const pages=[canvasPdfPart(canvas)];
- const moves=getReportData().cash.movements;
+ reportCanvasDraw(canvas,2);
+ const pages=[canvasPdfPart(canvas)];
+ const data=getReportData();
+ const leftover=Math.max(0,data.jobs.length-firstPageWorkCount);
+ for(let i=0;i<Math.ceil(leftover/continuedPageWorkCount);i++){
+  workStatementPageDraw(canvas,i,1.5);
+  pages.push(canvasPdfPart(canvas));
+ }
+ const moves=data.cash.movements;
  for(let i=0;i<Math.ceil(moves.length/cashStatementPageSize);i++){
   cashStatementPageDraw(canvas,i,1.5);
   pages.push(canvasPdfPart(canvas));
@@ -916,7 +927,7 @@ function reportHasContent(){const d=getReportData();return d.jobs.length>0||d.ca
 function filename(){let c=db.clients.find(c=>c.id===$('#reportClient').value);return `تقرير_${(c?.name||'عميل').replace(/[\\/:*?"<>|]/g,'_')}_${$('#reportFrom').value}_${$('#reportTo').value}.pdf`;}
 function downloadBlob(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),9000);}
 $('#downloadPdf').onclick=()=>{try{if(!reportHasContent()){alertToast('لا توجد أعمال منجزة أو مبالغ مسجلة لهذه الفترة.');return;}let pdf=createReportPdf();downloadBlob(pdf,filename());alertToast('تم تجهيز التقرير PDF على ورقتك الرسمية.');}catch(e){alertToast('تعذّر تجهيز PDF: '+e.message);console.error(e);}};
-$('#shareWhatsapp').onclick=async()=>{try{if(!reportHasContent()){alertToast('لا توجد أعمال منجزة أو مبالغ مسجلة لهذه الفترة.');return;}let pdf=createReportPdf();let name=filename(),file=new File([pdf],name,{type:'application/pdf'});let c=db.clients.find(c=>c.id===$('#reportClient').value);let msg=`مرحبًا، يسعدنا مشاركتكم تقرير الإنجازات وكشف المبالغ للفترة ${pdfRange($('#reportFrom').value,$('#reportTo').value)}. مرفق تقرير الأداء الخاص بكم.\nمع تحيات شعلان للدعاية والإعلان.`;
+$('#shareWhatsapp').onclick=async()=>{try{if(!reportHasContent()){alertToast('لا توجد أعمال منجزة أو مبالغ مسجلة لهذه الفترة.');return;}let pdf=createReportPdf();let name=filename(),file=new File([pdf],name,{type:'application/pdf'});let c=db.clients.find(c=>c.id===$('#reportClient').value);let msg=`مرحبًا، يسعدنا مشاركتكم تقرير الأعمال المكتملة وتعديلاتها وكشف المبالغ للفترة ${pdfRange($('#reportFrom').value,$('#reportTo').value)}. مرفق تقرير الأداء الخاص بكم.\nمع تحيات شعلان للدعاية والإعلان.`;
  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:msg,title:name});return;}
  downloadBlob(pdf,name);let phone=String(c?.phone||'').replace(/\D/g,'');let url='https://wa.me/'+phone+'?text='+encodeURIComponent(msg);window.open(url,'_blank','noopener');alertToast('تم تنزيل PDF وفتح واتساب. أرفق الملف في المحادثة لإرساله.');
  }catch(e){if(e.name!=='AbortError'){alertToast('تعذّر مشاركة التقرير: '+e.message);console.error(e);}}};
