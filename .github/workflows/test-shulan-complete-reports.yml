@@ -86,6 +86,7 @@ jobs:
                   filteredJobCount:report.jobs.length,revisionTotal:report.revisionCount,
                   printedCount:completeNames.length,uniquePrints:new Set(completeNames).size,
                   firstTitle:completeNames[0],lastTitle:completeNames.at(-1),
+                  expectedFirst:report.jobs[0]?.title,expectedLast:report.jobs.at(-1)?.title,
                   pendingExcluded,otherExcluded,
                   noZeroRevisionSource,reviewColumn,isDefaultShown,
                   summaryPrinted,headingPrinted,disabled,noteHidden,optionalOmitted,
@@ -100,7 +101,7 @@ jobs:
               const assert=(condition,msg)=>{if(!condition)throw Error(msg)};
               assert(result.filteredJobCount===43&&result.revisionTotal===5,'Completed work filtering incorrect');
               assert(result.printedCount===43&&result.uniquePrints===43,'Not all completed work names printed');
-              assert(result.firstTitle==='عمل اختبار 43'&&result.lastTitle==='عمل اختبار 1','Report order / continuation wrong');
+              assert(result.firstTitle===result.expectedFirst&&result.lastTitle===result.expectedLast,'Report order / continuation wrong');
               assert(result.pendingExcluded&&result.otherExcluded,'Wrong client or incomplete tasks leaked');
               assert(result.noZeroRevisionSource&&result.reviewColumn&&result.headingPrinted,'Revision column or heading missing');
               assert(result.isDefaultShown&&result.summaryPrinted&&result.disabled&&result.noteHidden&&result.optionalOmitted,'Summary option does not work');
