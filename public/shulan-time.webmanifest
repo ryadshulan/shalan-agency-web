@@ -1,0 +1,44 @@
+{
+  "id": "/shulan-time",
+  "name": "وقتي وأهدافي | شعلان",
+  "short_name": "وقتي",
+  "description": "إدارة يومك من 7 صباحًا إلى 1 ليلًا، وربط ساعاتك بالأهداف.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/shulan-management.html?view=time",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#f8f7f7",
+  "theme_color": "#59263b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/shulan-time-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/shulan-time-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "إدارة وقتي",
+      "short_name": "وقتي",
+      "url": "/shulan-management.html?view=time"
+    },
+    {
+      "name": "نظام شعلان",
+      "short_name": "النظام",
+      "url": "/shulan-management.html"
+    }
+  ]
+}
