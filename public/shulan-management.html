@@ -1115,6 +1115,10 @@ $('#exportCsv').onclick=()=>{let cols=['اسم العميل','تاريخ','اس�
 // --- Shulan time planner: weekly recurring calendar, confirmed work, cascading goals.
 // Data stays in the existing per-user cloud workspace JSON, without a second database.
 const tpDayNames=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
+const tpVisibleHours=Array.from({length:18},(_,i)=>i+7); // 07:00 through 00:00; last hour ends at 01:00
+function tpFormatHour(h){return String(h%24).padStart(2,'0')+':00';}
+function tpTodayPlannerDate(){return new Date().getHours()===0?tpShiftDate(localToday(),-1):localToday();}
+let tpAgendaDay=null,tpShowWeek=false;
 const tpMonthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const tpLevelNames={operational:'تشغيلي · أسبوعي',tactical:'تكتيكي · شهري',strategic:'استراتيجي · سنوي'};
 let tpWeekAnchor=tpStartOfWeek(localToday()),tpSelectedYear=Number(localToday().slice(0,4));
@@ -1211,7 +1215,7 @@ function tpSwitchMode(){
  $('#tpOnceDate').required=once;
 }
 function tpDurationOptions(selected){
- const start=Number($('#tpHour').value)||0,max=24-start;
+ const start=Number($('#tpHour').value)||0,max=(start>=7?25:24)-start;
  $('#tpDuration').innerHTML=Array.from({length:max},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+' '+(i===0?'ساعة':'ساعات')+'</option>').join('');
  if(selected&&selected<=max)$('#tpDuration').value=selected;
 }
@@ -1260,7 +1264,7 @@ function tpSaveEntry(e){
   endDate:mode==='weekly'?$('#tpEnd').value:'',
   days:mode==='weekly'?$$('#tpDaysChecks input:checked').map(x=>Number(x.value)):[],
   goalId,note:$('#tpTaskNote').value.trim()};
- if(!title||!Number.isInteger(hour)||hour<0||hour>23||!Number.isInteger(duration)||duration<1||hour+duration>24){
+ if(!title||!Number.isInteger(hour)||hour<7||hour>24||!Number.isInteger(duration)||duration<1||hour+duration>25){
   alertToast('أدخل المهمة والساعة والمدة بشكل صحيح.');return;
  }
  if(mode==='once'&&!tpValidateDate(entry.date)){alertToast('حدد تاريخ المهمة بشكل صحيح.');return;}
@@ -1323,15 +1327,15 @@ function tpRenderGrid(){
   }
  }
  let html='<thead><tr><th class="tp-hour">الساعة</th>'+days.map((date,i)=>'<th class="'+(date===tod?'tp-today':'')+'">'+tpDayNames[i]+'<small style="display:block;font-size:10px">'+date.slice(5)+'</small></th>').join('')+'</tr></thead><tbody>';
- for(let hour=0;hour<24;hour++){
-  html+='<tr><td class="tp-hour">'+String(hour).padStart(2,'0')+':00</td>';
+ for(const hour of tpVisibleHours){
+  html+='<tr><td class="tp-hour">'+tpFormatHour(hour)+(hour===24?'<small style="display:block;font-size:9px">(+1)</small>':'')+'</td>';
   for(let d=0;d<7;d++){
    const column=grid[d],date=days[d];
    const inst=column.starts.get(hour);
    if(inst){
     const e=inst.entry,done=!!inst.done;
     html+='<td class="tp-filled" rowspan="'+e.duration+'"><div class="tp-event '+(done?'done':'')+'"><strong>'+safe(e.title)+'</strong>'
-     +'<small>'+String(e.hour).padStart(2,'0')+':00 · '+e.duration+' س'+(e.goalId?' · مرتبط بهدف':'')+'</small>'
+     +'<small>'+tpFormatHour(e.hour)+' · '+e.duration+' س'+(e.goalId?' · مرتبط بهدف':'')+'</small>'
      +(e.note?'<small>'+safe(e.note)+'</small>':'')
      +'<div class="tp-event-actions"><button type="button" data-tp-action="toggle" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+(done?'✓ تم':'تم؟')+'</button>'
      +(done?'<button type="button" data-tp-action="hours" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+Number(inst.done.hours||0)+' س</button>':'')
@@ -1362,7 +1366,7 @@ function tpRenderEntries(){
  const list=tpEntryList().slice().sort((a,b)=>a.hour-b.hour||a.title.localeCompare(b.title,'ar'));
  $('#tpEntryList').innerHTML=list.length?list.map(e=>{
   const g=tpGoalList().find(x=>x.id===e.goalId),schedule=e.mode==='once'?e.date:(e.days||[]).map(i=>tpDayNames[i]).join('، ');
-  return '<div class="tp-entry-row"><div style="min-width:0"><strong>'+safe(e.title)+'</strong><small>'+safe(schedule)+' · '+String(e.hour).padStart(2,'0')+':00 · '+e.duration+' س'+(g?' · '+safe(g.title):'')+'</small></div><div class="tp-row-actions"><button type="button" data-tp-action="edit" data-id="'+safe(e.id)+'">تعديل</button><button type="button" class="tp-danger" data-tp-action="delete" data-id="'+safe(e.id)+'">حذف</button></div></div>';
+  return '<div class="tp-entry-row"><div style="min-width:0"><strong>'+safe(e.title)+'</strong><small>'+safe(schedule)+' · '+tpFormatHour(e.hour)+' · '+e.duration+' س'+(g?' · '+safe(g.title):'')+'</small></div><div class="tp-row-actions"><button type="button" data-tp-action="edit" data-id="'+safe(e.id)+'">تعديل</button><button type="button" class="tp-danger" data-tp-action="delete" data-id="'+safe(e.id)+'">حذف</button></div></div>';
  }).join(''):'<div class="tp-empty-msg">ابدأ بإضافة جلسة مثل «تعلم فوتوشوب» الساعة 8 صباحًا وحدد أيام التكرار.</div>';
 }
 function tpGoalMarkup(g){
@@ -1400,10 +1404,10 @@ function tpRenderYear(){
 }
 function renderTimePlanner(){
  if(!$('#tpWeekGrid'))return;
- tpRenderGrid();tpRenderDayBars();tpRenderEntries();tpRenderGoals();tpRenderYear();
+ tpRenderGrid();tpRenderDailyAgenda();tpRenderDayBars();tpRenderEntries();tpRenderGoals();tpRenderYear();
 }
 function tpInitialize(){
- $('#tpHour').innerHTML=Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,'0')+':00</option>').join('');
+ $('#tpHour').innerHTML=tpVisibleHours.map(h=>'<option value="'+h+'">'+tpFormatHour(h)+(h===24?' (اليوم التالي)':'')+'</option>').join('');
  $('#tpDaysChecks').innerHTML=tpDayNames.map((name,i)=>'<label><input type="checkbox" value="'+i+'">'+name+'</label>').join('');
  $('#tpEntryForm').addEventListener('submit',tpSaveEntry);
  $('#tpGoalForm').addEventListener('submit',tpSaveGoal);
@@ -1540,6 +1544,7 @@ async function openCloudWorkspace(){
  cloudReady=true;cloudGate.style.display='none';cloudMessage.textContent='';
  $('#cloudAccountLabel').textContent='الحساب: '+(session.user.email||'—');
  renderAll();loadReportText();renderReport();
+ if(document.body.classList.contains('tp-standalone'))page('time');
  statusCloud('✓ متصل بقاعدة البيانات السحابية');
  if(cloudPending)flushCloudQueue();
  if(oldLocalData?.jobs?.length && !remote.jobs?.length){
