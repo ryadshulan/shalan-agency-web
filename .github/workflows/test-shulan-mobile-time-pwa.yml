@@ -1,0 +1,115 @@
+name: Test Shulan mobile time home screen PWA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - 'public/shulan-time*'
+      - '.github/workflows/test-shulan-mobile-time-pwa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-time:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify install manifest and PNG icons
+        run: |
+          python3 <<'PY'
+          import json, struct, zlib, pathlib
+          root=pathlib.Path('public')
+          m=json.loads((root/'shulan-time.webmanifest').read_text())
+          assert m['start_url']=='/shulan-management.html?view=time'
+          assert m['display']=='standalone'
+          assert len(m['icons'])>=2
+          for image in m['icons']:
+            p=root/image['src'].lstrip('/')
+            b=p.read_bytes()
+            assert b[:8]==b'\x89PNG\r\n\x1a\n',p
+            assert struct.unpack('>II',b[16:24])==(int(image['sizes'].split('x')[0]),)*2
+            off=8
+            raw=b''
+            while off<len(b):
+              n=struct.unpack('>I',b[off:off+4])[0]
+              kind=b[off+4:off+8]
+              data=b[off+8:off+8+n]
+              checksum=struct.unpack('>I',b[off+8+n:off+12+n])[0]
+              assert zlib.crc32(kind+data)&0xffffffff==checksum,p
+              if kind==b'IDAT':raw+=data
+              off+=n+12
+            assert zlib.decompress(raw),p
+            print('VALID ICON',p,'size',len(b))
+          assert (root/'shulan-time-sw.js').exists()
+          PY
+      - name: Install headless browser
+        run: npm install --prefix /tmp/shulan-mobile-pwa puppeteer-core@24 --no-audit --no-fund
+      - name: Test 07:00–01:00, mobile agenda, recurrence and standalone startup
+        env:
+          NODE_PATH: /tmp/shulan-mobile-pwa/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs'),path=require('path');
+          const bin=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(fs.existsSync);
+          if(!bin)throw Error('Chrome missing');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:bin,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage(),errors=[];
+              await page.setViewport({width:390,height:840,deviceScaleFactor:1});
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('file://'+path.resolve('public/shulan-management.html')+'?view=time',{waitUntil:'domcontentloaded',timeout:60000});
+              await page.waitForFunction(()=>typeof tpRenderDailyAgenda==='function'&&typeof renderTimePlanner==='function',{timeout:15000});
+              const info=await page.evaluate(()=>{
+                const initialStandalone=document.body.classList.contains('tp-standalone');
+                db={clients:[],jobs:[],cashMovements:[],reportNotes:{},timeGoals:[],timeLogs:[],
+                  timeEntries:[
+                    {id:'sat7',title:'درس فوتوشوب',mode:'weekly',startDate:'2026-10-24',endDate:'2026-11-30',days:[0],hour:7,duration:2,goalId:''},
+                    {id:'sat23',title:'مراجعة مشروع متأخرة',mode:'weekly',startDate:'2026-10-24',endDate:'2026-11-30',days:[0],hour:23,duration:2,goalId:''},
+                    {id:'sun8',title:'تعلّم إليستريتور',mode:'weekly',startDate:'2026-10-24',endDate:'2026-11-30',days:[1],hour:8,duration:2,goalId:''},
+                    {id:'old',title:'سجل قديم خارج ساعات العرض',mode:'weekly',startDate:'2026-10-24',endDate:'2026-11-30',days:[0],hour:3,duration:1,goalId:''}
+                  ]};
+                save=()=>{};cloudReady=true;tpWeekAnchor='2026-10-24';tpAgendaDay='2026-10-24';
+                renderTimePlanner();
+                const rows=[...document.querySelectorAll('#tpWeekGrid tbody tr')];
+                const firstHour=rows[0]?.querySelector('.tp-hour')?.textContent.trim();
+                const lastHour=rows.at(-1)?.querySelector('.tp-hour')?.textContent.trim();
+                const endCell=[...document.querySelectorAll('#tpWeekGrid .tp-event strong')].find(x=>x.textContent==='مراجعة مشروع متأخرة')?.closest('td');
+                const beforeAgenda=document.querySelector('#tpDailyTasks').textContent;
+                const current=()=>[...document.querySelectorAll('#tpDayStrip .tp-day-pill')].find(x=>x.classList.contains('active'))?.dataset.tpDay;
+                const noEarlyOption=[...document.querySelector('#tpHour').options].every(o=>Number(o.value)>=7);
+                document.querySelector('#tpDayStrip [data-tp-day="2026-10-25"]').click();
+                const afterAgenda=document.querySelector('#tpDailyTasks').textContent;
+                const selectedSunday=current()==='2026-10-25';
+                document.querySelector('#tpTodayButton').click();
+                document.querySelector('#tpToggleWeekly').click();
+                const expanded=document.querySelector('#tpWeeklyPanel').classList.contains('tp-show-week');
+                const weekHas7Cols=document.querySelectorAll('#tpWeekGrid thead th').length===8;
+                document.querySelector('#tpHour').value='23';tpDurationOptions(2);
+                const crossMidnightOptions=document.querySelector('#tpDuration').options.length===2;
+                document.querySelector('#tpHour').value='24';tpDurationOptions();
+                const midnightLastHour=document.querySelector('#tpDuration').options.length===1;
+                return {initialStandalone,rows:rows.length,firstHour,lastHour,
+                  endSpan:endCell?.rowSpan,hasPhoto:beforeAgenda.includes('درس فوتوشوب'),
+                  hasOvernight:beforeAgenda.includes('مراجعة مشروع متأخرة'),oldPreserved:db.timeEntries.length===4,
+                  selectedSunday,afterIllustrator:afterAgenda.includes('تعلّم إليستريتور'),
+                  expanded,weekHas7Cols,noEarlyOption,crossMidnightOptions,midnightLastHour,
+                  bodyWidth:document.documentElement.scrollWidth,screenWidth:innerWidth,
+                  mobileAgendaDisplay:getComputedStyle(document.querySelector('.tp-daily-panel')).display,
+                  sidebarHidden:getComputedStyle(document.querySelector('.side')).display==='none',
+                  manifest:!!document.querySelector('link[rel=manifest]')
+                };
+              });
+              console.log('MOBILE TIME PWA QA',JSON.stringify(info));
+              if(errors.length)throw Error('Browser errors: '+errors.join('; '));
+              const yes=(x,why)=>{if(!x)throw Error(why)};
+              yes(info.initialStandalone&&info.sidebarHidden&&info.manifest,'Standalone launch');
+              yes(info.rows===18&&info.firstHour.startsWith('07:00')&&info.lastHour.includes('00:00'),'Awake-hour grid');
+              yes(info.endSpan===2&&info.weekHas7Cols&&info.noEarlyOption&&info.midnightLastHour&&info.crossMidnightOptions,'Overnight scheduling');
+              yes(info.hasPhoto&&info.hasOvernight&&info.oldPreserved&&info.selectedSunday&&info.afterIllustrator,'Daily agenda');
+              yes(info.expanded&&info.mobileAgendaDisplay!=='none'&&info.bodyWidth<=info.screenWidth+3,'Mobile layout');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1);});
+          NODE
