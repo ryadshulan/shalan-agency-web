@@ -1321,6 +1321,7 @@ function tpRenderGrid(){
  const grid=Array.from({length:7},()=>({starts:new Map(),covered:new Set()}));
  for(const inst of instances){
   const d=tpDayIndex(inst.date),column=grid[d],hour=Number(inst.entry.hour),length=Number(inst.entry.duration);
+  if(hour<7||hour>24||hour+length>25)continue; // Preserve legacy sleeping-hours entries without corrupting visible columns.
   if(!column.starts.has(hour)&&!Array.from({length},(_,i)=>hour+i).some(i=>column.covered.has(i))){
    column.starts.set(hour,inst);
    for(let i=hour;i<hour+length;i++)column.covered.add(i);
