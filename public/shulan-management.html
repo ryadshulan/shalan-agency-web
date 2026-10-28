@@ -305,6 +305,81 @@ body{overflow-x:hidden}
 .task-rail .revision-control .revision-number{font-size:14px;font-weight:900;letter-spacing:-.35px}
 .task-rail .revision-control:has(.revision-number){overflow:hidden}
 </style>
+<style id="shulan-time-and-goals">
+/* Shulan unified weekly planner, cascading objectives, annual review */
+.tp-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(125deg,#fffaf6,#f2e8e9);border:1px solid #e8d7db;margin-bottom:14px;flex-wrap:wrap}
+.tp-hero h2{font-size:26px;color:#562134;margin:4px 0 8px}.tp-hero p{font-size:13px;line-height:1.8;max-width:680px;margin:0;color:#6e5b61}
+.tp-eyebrow{letter-spacing:2px;font-size:9px;font-weight:800;color:#a57780}
+.tp-hero-actions,.tp-actions,.tp-navweek,.tp-year-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tp-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.tp-kpi{border:1px solid #e6d9d7;border-radius:13px;background:#fff;padding:13px 15px;min-width:0}
+.tp-kpi small{display:block;color:#877980;font-size:11px;line-height:1.5}.tp-kpi strong{display:block;font-size:25px;color:#622537;margin-top:5px;font-variant-numeric:tabular-nums}.tp-kpi em{font-size:11px;color:#948589;font-style:normal}
+.tp-week-panel{margin-bottom:15px;min-width:0}.tp-week-head{align-items:center;gap:12px}
+.tp-navweek input{max-width:155px;min-width:125px;height:37px;padding:6px;border:1px solid #e1d4d1;border-radius:8px;color:#56313e;background:#fff}
+.tp-navweek .btn,.tp-year-nav .btn{min-width:34px}
+.tp-week-caption{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:10px;color:#78666d}.tp-week-caption strong{color:#5c293a}
+.tp-scroll{width:100%;max-width:100%;overflow:auto;max-height:780px;border:1px solid #e8dcdb;border-radius:10px;overscroll-behavior-x:contain;scrollbar-width:thin}
+.tp-table{width:100%;min-width:910px;table-layout:fixed;border-collapse:separate;border-spacing:0;direction:rtl;font-size:11px}
+.tp-table th,.tp-table td{border-bottom:1px solid #eee7e6;border-left:1px solid #eee7e6;text-align:center;box-sizing:border-box;padding:0;vertical-align:middle}
+.tp-table th{height:49px;background:#f6eff0;color:#663245;position:sticky;top:0;z-index:2}
+.tp-table th.tp-hour,.tp-table td.tp-hour{position:sticky;right:0;width:66px;min-width:66px;max-width:66px;z-index:3;background:#f8f4f2;color:#71636a;font-weight:700}
+.tp-table th.tp-hour{z-index:5;background:#e9dee0}.tp-table tr{height:48px}.tp-table td.tp-empty{background:#fff;cursor:pointer}.tp-table td.tp-empty:hover{background:#f8f0ee}
+.tp-table td.tp-today,.tp-table th.tp-today{background:#faf6ef}
+.tp-table td.tp-filled{background:#fff6f5;padding:3px;vertical-align:top}
+.tp-event{border-radius:8px;border-right:3px solid #93435a;background:linear-gradient(160deg,#faeef0,#fff);padding:7px;text-align:right;min-height:100%;height:100%;display:flex;flex-direction:column;gap:5px;box-sizing:border-box}
+.tp-event.done{border-right-color:#26805a;background:linear-gradient(155deg,#eaf8ef,#fff)}
+.tp-event strong{font-size:11px;line-height:1.5;overflow-wrap:anywhere;color:#4b2733}
+.tp-event small{display:block;color:#786a70;font-size:10px;line-height:1.5}
+.tp-event-actions{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:auto}
+.tp-event button{font:700 10px Tahoma,Arial;padding:3px 7px;border-radius:6px;border:1px solid #d8c2c7;background:#fff;color:#713143;cursor:pointer}
+.tp-event.done button[data-tp-action="toggle"]{background:#e4f4eb;color:#276946;border-color:#b9dfc5}
+.tp-mobile-hint{display:none;color:#8b787e;font-size:11px;margin:8px 0}
+.tp-day-bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin:15px 0 0}
+.tp-bar-card{min-width:0}.tp-bar-card b{font-size:10px;color:#6e5861}.tp-bar-card small{display:block;color:#8b7d80;font-size:10px;margin:4px 0}
+.tp-bar-track{height:8px;border-radius:12px;background:#ece4e3;overflow:hidden}.tp-bar-track>span{height:100%;display:block;background:linear-gradient(90deg,#a75b68,#672638);border-radius:12px}
+.tp-bar-track.is-done>span{background:#218357}
+.tp-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:15px;align-items:start}
+.tp-editor-grid .panel{min-width:0}.tp-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}
+.tp-form .field{min-width:0}.tp-form .field input,.tp-form .field select{width:100%;min-width:0;box-sizing:border-box}
+.tp-wide{grid-column:1/-1}.tp-form-label{display:block;font-size:12px;color:#725d65;margin-bottom:9px;font-weight:700}
+.tp-day-checks{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.tp-day-checks label{display:flex;justify-content:center;align-items:center;flex-direction:column;gap:5px;min-width:0;border:1px solid #e4d7d7;border-radius:8px;padding:8px 1px;cursor:pointer;background:#fff;font-size:10px;color:#704c5b}
+.tp-day-checks label:has(input:checked){border-color:#a3586c;background:#faecef;color:#622738}
+.tp-form .tp-checkrow label{display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.7;color:#634b57}
+.tp-form .tp-checkrow input{width:auto;min-height:0;margin-top:3px}
+.tp-form [hidden],#tpEntryForm [hidden],#tpGoalForm [hidden]{display:none!important}
+.tp-actions{margin-top:6px}.tp-entry-list,.tp-goals-list{display:flex;flex-direction:column;gap:7px;margin-top:18px}
+.tp-entry-row,.tp-goal-row{border:1px solid #eadedc;border-radius:10px;background:#fff;padding:11px;display:flex;justify-content:space-between;gap:10px;min-width:0;align-items:center}
+.tp-entry-row strong,.tp-goal-row strong{font-size:12px;display:block;line-height:1.5;color:#502934;overflow-wrap:anywhere}
+.tp-entry-row small,.tp-goal-row small{font-size:10px;color:#87767d;line-height:1.5;display:block}
+.tp-entry-row .tp-row-actions,.tp-goal-row .tp-row-actions{display:flex;gap:5px;flex-shrink:0}
+.tp-row-actions button{border:1px solid #e1d4d4;border-radius:7px;padding:6px 8px;background:#faf7f7;color:#683648;font-size:11px;cursor:pointer}
+.tp-row-actions button.tp-danger{color:#a0344a}
+.tp-goal-tag{display:inline-block;background:#f3e8ec;color:#784253;border-radius:20px;font-size:10px;padding:3px 7px;margin-bottom:4px}
+.tp-prog{height:7px;background:#eae5e4;border-radius:9px;overflow:hidden;margin:7px 0 3px}
+.tp-prog span{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#be8090,#6f2b3e)}
+.tp-goal-row{align-items:flex-start}.tp-goal-body{min-width:0;flex:1}
+.tp-year-panel .tp-year-nav strong{min-width:56px;text-align:center;color:#632c3e;font-size:18px}
+.tp-months{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}
+.tp-month{background:#fff;border:1px solid #eadedc;border-radius:13px;padding:13px;min-width:0}
+.tp-month.today{border-color:#ae7282;background:#fffafa}
+.tp-month-head{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.tp-month-head b{color:#562836;font-size:14px}.tp-month-head small{font-size:10px;color:#93838a}
+.tp-month-meta{font-size:11px;color:#83767b;margin:8px 0}
+.tp-month-goal{border-top:1px solid #efe6e5;margin-top:7px;padding-top:7px;font-size:11px;line-height:1.5;color:#5d414e}
+.tp-month-goal small{color:#8c7b80}
+.tp-year-bars{display:flex;align-items:end;justify-content:space-between;gap:6px;min-height:130px;max-width:100%;overflow:hidden}
+.tp-year-bar{display:flex;flex:1;align-items:center;flex-direction:column;justify-content:end;gap:5px;min-width:0;height:125px}
+.tp-year-bar-track{display:flex;align-items:end;justify-content:center;gap:3px;height:91px;width:100%;border-bottom:1px solid #e3d6d5}
+.tp-year-bar-track span{max-width:22px;width:38%;min-height:2px;border-radius:5px 5px 0 0;background:#ead4d8}
+.tp-year-bar-track span.done{background:#7f334d}
+.tp-year-bar small{font-size:10px;color:#876e78}
+.tp-strategy{margin-top:20px;border-top:1px solid #e8d9da;padding-top:14px}.tp-strategy h3{font-size:15px;color:#622c3e}.tp-strategy .tp-goals-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.tp-empty-msg{padding:16px;border:1px dashed #dfd1d1;border-radius:9px;text-align:center;font-size:12px;color:#8c7c80}
+@media(max-width:1280px){.tp-editor-grid{grid-template-columns:1fr}.tp-months{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:750px){.tp-hero h2{font-size:21px}.tp-hero-actions{width:100%}.tp-hero-actions .btn{flex:1}.tp-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.tp-kpi{padding:10px}.tp-week-head{flex-direction:column;align-items:stretch}.tp-navweek{justify-content:space-between;width:100%}.tp-navweek input{flex:1}.tp-table{min-width:780px}.tp-mobile-hint{display:block}.tp-day-bars{grid-template-columns:repeat(4,minmax(0,1fr))}.tp-months{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.tp-month{padding:10px}.tp-strategy .tp-goals-list{grid-template-columns:1fr}.tp-day-checks label{padding:8px 0;font-size:9px}.tp-entry-row,.tp-goal-row{padding:9px}.tp-form{gap:8px}}
+@media(max-width:370px){.tp-months{grid-template-columns:1fr}.tp-day-checks{grid-template-columns:repeat(4,minmax(0,1fr))}.tp-day-bars{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -329,6 +404,7 @@ body{overflow-x:hidden}
    <button type="button" data-page="clients"><span class="nav-icon">▣</span>العملاء</button>
    <button type="button" data-page="jobs"><span class="nav-icon">≡</span>سجل الأعمال</button>
    <button type="button" data-page="advances"><span class="nav-icon">◈</span>مبالغ العملاء</button>
+   <button type="button" data-page="time"><span class="nav-icon">◷</span>الوقت والأهداف</button>
    <button type="button" data-page="reports"><span class="nav-icon">▤</span>التقرير الرسمي</button>
    <button type="button" data-page="backup"><span class="nav-icon">⚙</span>البيانات والنسخ</button>
   </div>
@@ -344,6 +420,67 @@ body{overflow-x:hidden}
   <section class="section" id="page-clients"><div class="panel-head"><div><h2>سجل العملاء</h2><p>لكل عميل ملف مستقل وجميع أعماله محفوظة</p></div><button class="btn primary" id="addClient">＋ عميل جديد</button></div><div class="client-list" id="clientsList"></div></section>
   <section class="section" id="page-jobs"><div class="panel"><div class="panel-head"><div><h2>الأعمال والخدمات</h2><p>تستطيع تسجيل الأعمال وتعديل حالتها والرجوع إلى تفاصيلها</p></div><button class="btn primary" id="addJob">＋ عمل جديد</button></div><div class="filterbar"><div class="field"><label>العميل</label><select id="jobsClient"></select></div><div class="field"><label>الحالة</label><select id="jobsStatus"><option value="all">جميع الحالات</option><option value="done">مكتمل</option><option value="active">قيد التنفيذ</option><option value="review">بانتظار المراجعة</option><option value="pending">لم يبدأ</option></select></div><div class="field"><label>ابحث</label><input id="jobsSearch" placeholder="اسم العمل أو المشروع أو الخدمة"></div></div><div class="table-wrap" id="jobsTable"></div></div></section>
 
+
+  <section class="section" id="page-time" aria-label="مخطط الوقت والأهداف">
+   <div class="tp-hero panel">
+    <div><div class="tp-eyebrow">WORKSPACE · TIME & GOALS</div><h2>وقتك يصنع أهدافك</h2><p>نظّم ساعاتك من السبت إلى الجمعة، واربط كل ساعة بهدف أسبوعي أو شهري أو سنوي. لا تُحسب ساعة ضمن الإنجاز حتى تؤكد إتمامها.</p></div>
+    <div class="tp-hero-actions"><button type="button" id="tpJumpEntry" class="btn primary">＋ جدولة مهمة</button><button type="button" id="tpJumpGoal" class="btn soft">◎ إضافة هدف</button></div>
+   </div>
+   <div class="tp-kpis" id="tpKpis"></div>
+   <div class="panel tp-week-panel">
+    <div class="panel-head tp-week-head">
+     <div><h2>مخطط الساعات × أيام الأسبوع</h2><p>24 ساعة صفوف، والأيام أعمدة. المهام المتكررة تظهر تلقائيًا، وتمتد الخلية بطول مدة المهمة.</p></div>
+     <div class="tp-navweek"><button id="tpPrevWeek" type="button" class="btn small" aria-label="الأسبوع السابق">‹</button><input type="date" id="tpWeekPick" aria-label="اختر تاريخ الأسبوع"><button id="tpNextWeek" type="button" class="btn small" aria-label="الأسبوع التالي">›</button></div>
+    </div>
+    <div class="tp-week-caption"><strong id="tpWeekLabel"></strong><span>اضغط «تم» لتسجيل الساعات الفعلية، أو «إلغاء» للتراجع عن تسجيلها.</span></div>
+    <div class="tp-scroll" id="tpGridScroll"><table class="tp-table" id="tpWeekGrid" aria-label="مخطط أسبوعي من 24 ساعة وسبعة أيام"></table></div>
+    <p class="tp-mobile-hint">على الجوال مرّر الجدول أفقيًا لمشاهدة بقية أيام الأسبوع.</p>
+    <div id="tpWeekBars" class="tp-day-bars"></div>
+   </div>
+   <div class="tp-editor-grid">
+    <div class="panel" id="tpEntryPanel">
+     <div class="panel-head"><div><h2 id="tpEntryHeading">جدولة مهمة في الوقت</h2><p>مثلاً: تعلّم فوتوشوب السبت 8 صباحًا لمدة ساعتين، يتكرر أسبوعيًا.</p></div></div>
+     <form id="tpEntryForm" class="tp-form">
+      <div class="field tp-wide"><label for="tpTitle">المهمة *</label><input type="text" id="tpTitle" maxlength="150" placeholder="تعلّم فوتوشوب / مراجعة مشروع / متابعة عميل" required></div>
+      <div class="field"><label for="tpRepeat">التكرار</label><select id="tpRepeat"><option value="weekly">أسبوعيًا في أيام محددة</option><option value="once">مرة واحدة بتاريخ محدد</option></select></div>
+      <div class="field"><label for="tpHour">ساعة البداية</label><select id="tpHour"></select></div>
+      <div class="field"><label for="tpDuration">مدة المهمة</label><select id="tpDuration"></select></div>
+      <div class="field tp-once-field" id="tpOnceWrap" hidden><label for="tpOnceDate">تاريخ المهمة</label><input type="date" id="tpOnceDate"></div>
+      <div class="tp-wide" id="tpDaysWrap"><label class="tp-form-label">أيام التكرار</label><div class="tp-day-checks" id="tpDaysChecks"></div></div>
+      <div class="field" id="tpStartWrap"><label for="tpStart">يبدأ التكرار من</label><input type="date" id="tpStart"></div>
+      <div class="field" id="tpEndWrap"><label for="tpEnd">ينتهي التكرار (اختياري)</label><input type="date" id="tpEnd"></div>
+      <div class="field tp-wide"><label for="tpTaskGoal">ربط المهمة بهدف (اختياري)</label><select id="tpTaskGoal"><option value="">بدون هدف</option></select></div>
+      <div class="field tp-wide"><label for="tpTaskNote">ملاحظة (اختياري)</label><input type="text" id="tpTaskNote" maxlength="200" placeholder="مثلاً: تنفيذ تمارين Adobe وإعداد ملف تدريب"></div>
+      <div class="tp-actions tp-wide"><button class="btn primary" type="submit" id="tpSaveEntry">حفظ المهمة</button><button type="button" id="tpCancelEntry" class="btn" hidden>إلغاء التعديل</button></div>
+     </form>
+     <div id="tpEntryList" class="tp-entry-list"></div>
+    </div>
+    <div class="panel" id="tpGoalPanel">
+     <div class="panel-head"><div><h2 id="tpGoalHeading">الأهداف المترابطة</h2><p>تشغيلي أسبوعي ← تكتيكي شهري ← استراتيجي سنوي. الساعات المنجزة تصعد تلقائيًا عبر العلاقة.</p></div></div>
+     <form id="tpGoalForm" class="tp-form">
+      <div class="field tp-wide"><label for="tpGoalTitle">اسم الهدف *</label><input type="text" id="tpGoalTitle" maxlength="150" placeholder="النجاح في تقييم مهارات فوتوشوب على LinkedIn" required></div>
+      <div class="field"><label for="tpGoalLevel">المستوى</label><select id="tpGoalLevel"><option value="operational">تشغيلي · أسبوع</option><option value="tactical">تكتيكي · شهر</option><option value="strategic">استراتيجي · سنة</option></select></div>
+      <div class="field"><label for="tpGoalTarget">الساعات المستهدفة</label><input id="tpGoalTarget" type="number" min="0.5" max="10000" step="0.5" inputmode="decimal" value="10" required></div>
+      <div class="field"><label for="tpGoalStart">بداية الهدف</label><input id="tpGoalStart" type="date" required></div>
+      <div class="field"><label for="tpGoalEnd">نهاية الهدف</label><input id="tpGoalEnd" type="date" required></div>
+      <div class="field tp-wide" id="tpParentWrap"><label for="tpGoalParent">يرتبط بهدف أكبر (اختياري)</label><select id="tpGoalParent"><option value="">بدون هدف رئيسي</option></select></div>
+      <div class="field tp-wide"><label for="tpGoalDescription">وصف أو معيار النجاح</label><input type="text" maxlength="220" id="tpGoalDescription" placeholder="مثلاً: إكمال المنهج واجتياز التقييم"></div>
+      <div class="field tp-wide tp-checkrow"><label><input type="checkbox" id="tpGoalAchieved"> تحقق الهدف فعليًا (يُحدد يدويًا؛ الساعات وحدها لا تعني اجتياز الاختبار)</label></div>
+      <div class="tp-actions tp-wide"><button class="btn primary" type="submit" id="tpSaveGoal">حفظ الهدف</button><button type="button" class="btn" id="tpCancelGoal" hidden>إلغاء التعديل</button></div>
+     </form>
+     <div id="tpGoalsList" class="tp-goals-list"></div>
+    </div>
+   </div>
+   <div class="panel tp-year-panel">
+    <div class="panel-head">
+     <div><h2>الأشهر الـ12 والأهداف</h2><p>كل شهر يعرض الساعات المخططة والمنجزة، والأهداف التكتيكية المرتبطة به، مع ملخص الأهداف الاستراتيجية للسنة.</p></div>
+     <div class="tp-year-nav"><button type="button" class="btn small" id="tpPrevYear">‹</button><strong id="tpYearLabel">2026</strong><button type="button" class="btn small" id="tpNextYear">›</button></div>
+    </div>
+    <div class="tp-year-bars" id="tpYearBars"></div>
+    <div class="tp-months" id="tpMonths"></div>
+    <div class="tp-strategy" id="tpStrategy"></div>
+   </div>
+  </section>
   <section class="section" id="page-advances">
     <div class="panel cash-panel">
       <div class="panel-head"><div><h2>مبالغ دفعتها نيابة عن العملاء</h2><p>سجّل كل دفعة أو مبلغ مسترد، حتى عند تكرار الدفع للعمل نفسه.</p></div></div>
