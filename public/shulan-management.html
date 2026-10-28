@@ -396,7 +396,7 @@ body{overflow-x:hidden}
 .tp-daily-footer{display:flex;gap:9px}.tp-daily-footer button{flex:1}.tp-mobile-app-top{display:none}.tp-app-avatar{height:42px;width:42px;background:linear-gradient(125deg,#813f58,#4d1f32);border-radius:12px;display:grid;place-items:center;color:#fff;font-size:22px;font-weight:900}
 .tp-week-panel.tp-show-week{display:block}.tp-week-panel.tp-week-hidden{display:none!important}
 body.tp-standalone{background:#f8f7f7}body.tp-standalone .side,body.tp-standalone .task-rail,body.tp-standalone .topbar{display:none!important}body.tp-standalone .app{display:block!important;min-height:100dvh}body.tp-standalone .main{width:100%;max-width:100%;padding:0 12px 30px!important;box-sizing:border-box}body.tp-standalone #page-time{display:block!important}body.tp-standalone .section:not(#page-time){display:none!important}body.tp-standalone #page-time>.tp-hero{display:none!important}
-body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;padding:13px 2px;margin-top:env(safe-area-inset-top,0px)}.tp-mobile-app-top strong{display:block;font-size:17px;color:#54283b}.tp-mobile-app-top small{font-size:10px;color:#8e777f}.tp-mobile-app-top a{margin-right:auto;color:#682c42;text-decoration:none;background:#f1e6e9;border-radius:8px;padding:7px;font-size:10px}
+body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;padding:13px 2px;margin-top:env(safe-area-inset-top,0px)}.tp-mobile-app-top strong{display:block;font-size:17px;color:#54283b}.tp-mobile-app-top small{font-size:10px;color:#8e777f}.tp-mobile-app-top a{margin-right:auto;color:#682c42;text-decoration:none;background:#f1e6e9;border-radius:8px;padding:7px;font-size:10px}.tp-app-install{border:1px solid #d9bcc5;border-radius:8px;padding:7px;background:#fff;color:#683247;font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer}.tp-app-install[hidden]{display:none!important}
 @media(max-width:750px){
  #page-time{max-width:100%;overflow:hidden}
  .tp-hero{padding:15px!important}.tp-hero-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.tp-hero-actions .btn{width:100%;min-width:0;font-size:11px}.tp-hero-actions #tpInstallButton{grid-column:1/-1}
@@ -455,7 +455,7 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
     <div><div class="tp-eyebrow">SHULAN · TIME & GOALS</div><h2>وقتك يصنع أهدافك</h2><p>يومك من 7 صباحًا إلى 1 بعد منتصف الليل. نظم العمل والتعلّم وتابع الأهداف بعيدًا عن ساعات النوم.</p></div>
     <div class="tp-hero-actions"><button type="button" id="tpJumpEntry" class="btn primary">＋ جدولة مهمة</button><button type="button" id="tpJumpGoal" class="btn soft">◎ إضافة هدف</button><button type="button" id="tpInstallButton" class="btn">⌂ إضافة للشاشة الرئيسية</button></div>
    </div>
-   <div class="tp-mobile-app-top"><div class="tp-app-avatar">ش</div><div><strong>وقتي وأهدافي</strong><small>لوحة يومية سريعة · شعلان</small></div><a href="/shulan-management.html">النظام الكامل ↗</a></div>
+   <div class="tp-mobile-app-top"><div class="tp-app-avatar">ش</div><div><strong>وقتي وأهدافي</strong><small>لوحة يومية سريعة · شعلان</small></div><button type="button" id="tpInstallAppTop" class="tp-app-install">تثبيت ⊕</button><a href="/shulan-management.html">النظام الكامل ↗</a></div>
    <div class="tp-daily-panel panel">
     <div class="tp-daily-heading"><div><span class="tp-eyebrow">DAILY FOCUS</span><h2 id="tpDailyTitle">جدول اليوم</h2><p id="tpDailyMeta"></p></div><button id="tpDailyAdd" class="tp-daily-plus" type="button" aria-label="إضافة مهمة">＋</button></div>
     <div class="tp-day-strip" id="tpDayStrip"></div>
@@ -1460,6 +1460,8 @@ function tpRegisterHomeScreen(){
  }
  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();tpInstallPrompt=event;});
  $('#tpInstallButton').addEventListener('click',tpHomeScreenHelp);
+ $('#tpInstallAppTop').addEventListener('click',tpHomeScreenHelp);
+ if(window.matchMedia('(display-mode: standalone)').matches||navigator.standalone)$('#tpInstallAppTop').hidden=true;
  $('#tpDayStrip').addEventListener('click',event=>{
   const button=event.target.closest('[data-tp-day]');
   if(!button)return;
