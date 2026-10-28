@@ -1,0 +1,48 @@
+name: Verify live Shulan time PWA assets
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - 'public/shulan-time*'
+      - '.github/workflows/verify-shulan-time-pwa-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Confirm public mobile app and install assets after Render deploy
+        run: |
+          set -eu
+          BASE=https://shalan-agency.onrender.com
+          for i in $(seq 1 16); do
+            code=$(curl -L --silent --show-error --max-time 22 -o /tmp/shulan-app.html -w '%{http_code}' "$BASE/shulan-management.html?view=time" || true)
+            manifest=$(curl -L --silent --show-error --max-time 22 -o /tmp/shulan-time.webmanifest -w '%{http_code}' "$BASE/shulan-time.webmanifest" || true)
+            worker=$(curl -L --silent --show-error --max-time 22 -o /tmp/shulan-time-sw.js -w '%{http_code}' "$BASE/shulan-time-sw.js" || true)
+            png192=$(curl -L --silent --show-error --max-time 22 -o /tmp/shulan-time-icon-192.png -w '%{http_code}' "$BASE/shulan-time-icon-192.png" || true)
+            png512=$(curl -L --silent --show-error --max-time 22 -o /tmp/shulan-time-icon-512.png -w '%{http_code}' "$BASE/shulan-time-icon-512.png" || true)
+            if [ "$code" = 200 ] && [ "$manifest" = 200 ] && [ "$worker" = 200 ] && [ "$png192" = 200 ] && [ "$png512" = 200 ] \
+              && grep -q 'tpDailyTasks' /tmp/shulan-app.html \
+              && grep -q 'tpVisibleHours' /tmp/shulan-app.html \
+              && grep -q 'standalone' /tmp/shulan-time.webmanifest; then
+              python3 - <<'PY'
+          import json,struct,pathlib
+          m=json.loads(pathlib.Path('/tmp/shulan-time.webmanifest').read_text())
+          assert m['start_url']=='/shulan-management.html?view=time'
+          assert m['display']=='standalone'
+          for size in [192,512]:
+            b=pathlib.Path(f'/tmp/shulan-time-icon-{size}.png').read_bytes()
+            assert b[:8]==b'\x89PNG\r\n\x1a\n'
+            assert struct.unpack('>II',b[16:24])==(size,size)
+          print('LIVE PWA: HTML, manifest, worker and both PNG icons passed')
+          PY
+              exit 0
+            fi
+            echo "Attempt $i => app:$code manifest:$manifest worker:$worker png192:$png192 png512:$png512"
+            sleep 10
+          done
+          echo "Live PWA deployment check failed"
+          exit 1
