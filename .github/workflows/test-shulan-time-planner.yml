@@ -86,7 +86,7 @@ jobs:
               if(errors.length)throw Error('Page JS error '+errors.join('; '));
               const assert=(ok,why)=>{if(!ok)throw Error(why)};
               assert(result.goalCount===3&&result.entryCount===3&&result.rejectedConflict&&result.onceAdded,'Saving/repeat conflict');
-              assert(result.rows===24&&result.headers[1].includes('السبت')&&result.headers[2].includes('الأحد'),'Grid orientation');
+              assert(result.rows===18&&result.headers[1].includes('السبت')&&result.headers[2].includes('الأحد'),'Grid orientation and awake-hour visibility');
               assert(result.satSpan===2&&result.sunSpan===3,'Duration not spanning cells');
               assert(result.weekPlan.planned===7&&result.actual.actual===4.5,'Weekly totals');
               assert(result.rollup.operational===1.5&&result.rollup.tactical===4.5&&result.rollup.strategic===4.5,'Cascading goal progress');
