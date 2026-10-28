@@ -1182,7 +1182,7 @@ function tpResetEntry(){
  $('#tpSaveEntry').textContent='حفظ المهمة';$('#tpCancelEntry').hidden=true;
  $('#tpRepeat').value='weekly';$('#tpStart').value=tpWeekAnchor;$('#tpEnd').value='';
  $('#tpOnceDate').value=localToday();$('#tpHour').value='8';tpDurationOptions(1);
- $('#tpDaysChecks input').forEach(x=>x.checked=Number(x.value)===tpDayIndex(localToday()));
+ $$('#tpDaysChecks input').forEach(x=>x.checked=Number(x.value)===tpDayIndex(localToday()));
  tpGoalOptions();tpSwitchMode();
 }
 function tpResetGoal(){
@@ -1196,7 +1196,7 @@ function tpEditEntry(id){
  $('#tpTitle').value=e.title;$('#tpRepeat').value=e.mode;$('#tpHour').value=e.hour;
  tpDurationOptions(e.duration);$('#tpStart').value=e.startDate||tpWeekAnchor;$('#tpEnd').value=e.endDate||'';
  $('#tpOnceDate').value=e.date||localToday();$('#tpTaskNote').value=e.note||'';
- $('#tpDaysChecks input').forEach(x=>x.checked=e.days?.includes(Number(x.value))||false);
+ $$('#tpDaysChecks input').forEach(x=>x.checked=e.days?.includes(Number(x.value))||false);
  tpGoalOptions(e.goalId);tpSwitchMode();$('#tpSaveEntry').textContent='حفظ التعديل';$('#tpCancelEntry').hidden=false;
  $('#tpEntryPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1220,7 +1220,7 @@ function tpSaveEntry(e){
   date:mode==='once'?$('#tpOnceDate').value:'',
   startDate:mode==='weekly'?$('#tpStart').value:'',
   endDate:mode==='weekly'?$('#tpEnd').value:'',
-  days:mode==='weekly'?$('#tpDaysChecks input:checked').map(x=>Number(x.value)):[],
+  days:mode==='weekly'?$$('#tpDaysChecks input:checked').map(x=>Number(x.value)):[],
   goalId,note:$('#tpTaskNote').value.trim()};
  if(!title||!Number.isInteger(hour)||hour<0||hour>23||!Number.isInteger(duration)||duration<1||hour+duration>24){
   alertToast('أدخل المهمة والساعة والمدة بشكل صحيح.');return;
