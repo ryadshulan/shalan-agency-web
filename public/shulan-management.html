@@ -1073,6 +1073,360 @@ function dataFilename(suffix){return 'شعلان_'+suffix+'_'+localToday();}
 $('#exportJson').onclick=()=>{let json=JSON.stringify({...db,exportedAt:new Date().toISOString()},null,2);downloadBlob(new Blob([json],{type:'application/json;charset=utf-8'}),dataFilename('نسخة_احتياطية')+'.json');alertToast('تم حفظ النسخة الاحتياطية.');};
 $('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع بيانات العملاء والأعمال والحركات المالية ببيانات النسخة المختارة. تأكد من وجود سجل المبالغ الحالي في النسخة. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{},cashMovements:Array.isArray(o.cashMovements)?o.cashMovements:[],timeEntries:Array.isArray(o.timeEntries)?o.timeEntries:[],timeGoals:Array.isArray(o.timeGoals)?o.timeGoals:[],timeLogs:Array.isArray(o.timeLogs)?o.timeLogs:[]};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
 $('#exportCsv').onclick=()=>{let cols=['اسم العميل','تاريخ','اسم العمل','المشروع','الخدمة','الحالة','موعد التسليم','وقت الإكمال','الوصف','العملة','السعر','التكلفة','المستلم'];let data=[cols,...db.jobs.map(j=>[db.clients.find(c=>c.id===j.clientId)?.name||'',j.date,j.title,j.project,j.category,statustext[j.status]||'',j.dueDate||'',j.completedAt||'',j.description,j.currency,j.price,j.cost,j.paid])];let csv='\ufeff'+data.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),dataFilename('الأعمال')+'.csv');alertToast('تم تصدير جميع الأعمال إلى CSV.');};
+
+// --- Shulan time planner: weekly recurring calendar, confirmed work, cascading goals.
+// Data stays in the existing per-user cloud workspace JSON, without a second database.
+const tpDayNames=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
+const tpMonthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const tpLevelNames={operational:'تشغيلي · أسبوعي',tactical:'تكتيكي · شهري',strategic:'استراتيجي · سنوي'};
+let tpWeekAnchor=tpStartOfWeek(localToday()),tpSelectedYear=Number(localToday().slice(0,4));
+let tpEditingEntry=null,tpEditingGoal=null;
+function tpParseDate(text){const v=String(text||'').split('-').map(Number);return new Date(v[0]||2026,(v[1]||1)-1,v[2]||1,12);}
+function tpFmtDate(date){return date.getFullYear()+'-'+two(date.getMonth()+1)+'-'+two(date.getDate());}
+function tpShiftDate(text,days){const date=tpParseDate(text);date.setDate(date.getDate()+days);return tpFmtDate(date);}
+function tpDayIndex(date){return (tpParseDate(date).getDay()+1)%7;} // Sat=0, Sun=1, ... Fri=6
+function tpStartOfWeek(date){return tpShiftDate(date,-tpDayIndex(date));}
+function tpWeekDates(anchor=tpWeekAnchor){return Array.from({length:7},(_,i)=>tpShiftDate(anchor,i));}
+function tpDateWithin(date,start,end){return (!start||date>=start)&&(!end||date<=end);}
+function tpEntryList(){return Array.isArray(db.timeEntries)?db.timeEntries:(db.timeEntries=[]);}
+function tpGoalList(){return Array.isArray(db.timeGoals)?db.timeGoals:(db.timeGoals=[]);}
+function tpLogList(){return Array.isArray(db.timeLogs)?db.timeLogs:(db.timeLogs=[]);}
+function tpApplies(entry,date){
+ if(entry.mode==='once')return entry.date===date;
+ return entry.mode==='weekly'&&tpDateWithin(date,entry.startDate,entry.endDate)&&Array.isArray(entry.days)&&entry.days.includes(tpDayIndex(date));
+}
+function tpOccurrence(entry,date){return {entry,date,done:tpLogList().find(x=>x.entryId===entry.id&&x.date===date&&x.done)||null};}
+function tpInstances(from,to){
+ const list=[],entries=tpEntryList().filter(x=>x&&x.title);
+ if(!from||!to||from>to)return list;
+ let day=from,limit=0;
+ while(day<=to&&limit++<370){
+  for(const entry of entries)if(tpApplies(entry,day))list.push(tpOccurrence(entry,day));
+  day=tpShiftDate(day,1);
+ }
+ return list;
+}
+function tpStats(from,to){
+ const rows=tpInstances(from,to),planned=rows.reduce((s,r)=>s+Number(r.entry.duration||0),0);
+ const done=tpLogList().filter(l=>l.done&&l.date>=from&&l.date<=to&&tpEntryList().some(e=>e.id===l.entryId));
+ const hours=done.reduce((s,l)=>s+Number(l.hours||0),0);
+ return {planned:Math.round(planned*10)/10,actual:Math.round(hours*10)/10,count:rows.length,doneCount:done.length,
+  percentage:planned?Math.round(Math.min(hours/planned,1)*100):0};
+}
+function tpGoalHasAncestor(entryGoalId,wantedId){
+ const visited=new Set();let g=tpGoalList().find(x=>x.id===entryGoalId);
+ while(g&&!visited.has(g.id)){if(g.id===wantedId)return true;visited.add(g.id);g=tpGoalList().find(x=>x.id===g.parentId);}
+ return false;
+}
+function tpGoalHours(goal,from=goal.startDate,to=goal.endDate){
+ const begin=from&&from>goal.startDate?from:goal.startDate;
+ const finish=to&&to<goal.endDate?to:goal.endDate;
+ if(!begin||!finish||begin>finish)return 0;
+ const entries=new Map(tpEntryList().map(e=>[e.id,e]));
+ return Math.round(tpLogList().filter(l=>l.done&&l.date>=begin&&l.date<=finish).reduce((total,l)=>{
+  const e=entries.get(l.entryId);
+  return total+(e?.goalId&&tpGoalHasAncestor(e.goalId,goal.id)?Number(l.hours||0):0);
+ },0)*10)/10;
+}
+function tpGoalPercent(goal,from,to){return Math.min(100,Math.round(100*tpGoalHours(goal,from,to)/(Number(goal.targetHours)||1)));}
+function tpOverlappingHours(a,b){return a.hour<b.hour+b.duration&&b.hour<a.hour+a.duration;}
+function tpEntryConflict(a,b){
+ if(!tpOverlappingHours(a,b))return false;
+ if(a.mode==='once'&&b.mode==='once')return a.date===b.date;
+ if(a.mode==='once')return tpApplies(b,a.date);
+ if(b.mode==='once')return tpApplies(a,b.date);
+ const begin=[a.startDate,b.startDate].sort().at(-1);
+ const end=[a.endDate||'9999-12-31',b.endDate||'9999-12-31'].sort()[0];
+ if(begin>end)return false;
+ for(let i=0;i<7;i++){const date=tpShiftDate(begin,i);if(date<=end&&tpApplies(a,date)&&tpApplies(b,date))return true;}
+ return false;
+}
+function tpGoalDateDefaults(level){
+ const today=localToday(),year=today.slice(0,4),month=today.slice(0,7);
+ if(level==='strategic')return [year+'-01-01',year+'-12-31'];
+ if(level==='tactical'){const d=tpParseDate(month+'-01');d.setMonth(d.getMonth()+1);d.setDate(0);return [month+'-01',tpFmtDate(d)];}
+ return [tpStartOfWeek(today),tpShiftDate(tpStartOfWeek(today),6)];
+}
+function tpSetGoalDefaults(){
+ const level=$('#tpGoalLevel').value,[start,end]=tpGoalDateDefaults(level);
+ $('#tpGoalStart').value=start;$('#tpGoalEnd').value=end;
+ $('#tpGoalTarget').value=level==='strategic'?250:level==='tactical'?60:10;
+ tpParentOptions();
+}
+function tpParentOptions(selected){
+ const level=$('#tpGoalLevel').value,next={operational:'tactical',tactical:'strategic',strategic:'none'}[level];
+ const options=tpGoalList().filter(g=>g.level===next&&g.id!==tpEditingGoal);
+ $('#tpParentWrap').hidden=level==='strategic';
+ $('#tpGoalParent').innerHTML='<option value="">بدون هدف رئيسي</option>'+options.map(g=>'<option value="'+safe(g.id)+'">'+safe(g.title)+'</option>').join('');
+ if(selected&&options.some(x=>x.id===selected))$('#tpGoalParent').value=selected;
+}
+function tpGoalOptions(selected){
+ $('#tpTaskGoal').innerHTML='<option value="">بدون هدف</option>'+tpGoalList().map(g=>'<option value="'+safe(g.id)+'">'+safe(g.title)+' · '+tpLevelNames[g.level]+'</option>').join('');
+ if(selected&&tpGoalList().some(g=>g.id===selected))$('#tpTaskGoal').value=selected;
+}
+function tpSwitchMode(){
+ const once=$('#tpRepeat').value==='once';
+ $('#tpOnceWrap').hidden=!once;
+ $('#tpDaysWrap').hidden=once;
+ $('#tpStartWrap').hidden=once;
+ $('#tpEndWrap').hidden=once;
+ $('#tpOnceDate').required=once;
+}
+function tpDurationOptions(selected){
+ const start=Number($('#tpHour').value)||0,max=24-start;
+ $('#tpDuration').innerHTML=Array.from({length:max},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+' '+(i===0?'ساعة':'ساعات')+'</option>').join('');
+ if(selected&&selected<=max)$('#tpDuration').value=selected;
+}
+function tpResetEntry(){
+ tpEditingEntry=null;$('#tpEntryForm').reset();$('#tpEntryHeading').textContent='جدولة مهمة في الوقت';
+ $('#tpSaveEntry').textContent='حفظ المهمة';$('#tpCancelEntry').hidden=true;
+ $('#tpRepeat').value='weekly';$('#tpStart').value=tpWeekAnchor;$('#tpEnd').value='';
+ $('#tpOnceDate').value=localToday();$('#tpHour').value='8';tpDurationOptions(1);
+ $('#tpDaysChecks input').forEach(x=>x.checked=Number(x.value)===tpDayIndex(localToday()));
+ tpGoalOptions();tpSwitchMode();
+}
+function tpResetGoal(){
+ tpEditingGoal=null;$('#tpGoalForm').reset();$('#tpGoalHeading').textContent='الأهداف المترابطة';
+ $('#tpSaveGoal').textContent='حفظ الهدف';$('#tpCancelGoal').hidden=true;
+ $('#tpGoalLevel').value='operational';tpSetGoalDefaults();$('#tpGoalAchieved').checked=false;
+}
+function tpEditEntry(id){
+ const e=tpEntryList().find(x=>x.id===id);if(!e)return;
+ tpEditingEntry=id;$('#tpEntryHeading').textContent='تعديل مهمة مجدولة';
+ $('#tpTitle').value=e.title;$('#tpRepeat').value=e.mode;$('#tpHour').value=e.hour;
+ tpDurationOptions(e.duration);$('#tpStart').value=e.startDate||tpWeekAnchor;$('#tpEnd').value=e.endDate||'';
+ $('#tpOnceDate').value=e.date||localToday();$('#tpTaskNote').value=e.note||'';
+ $('#tpDaysChecks input').forEach(x=>x.checked=e.days?.includes(Number(x.value))||false);
+ tpGoalOptions(e.goalId);tpSwitchMode();$('#tpSaveEntry').textContent='حفظ التعديل';$('#tpCancelEntry').hidden=false;
+ $('#tpEntryPanel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function tpEditGoal(id){
+ const g=tpGoalList().find(x=>x.id===id);if(!g)return;
+ tpEditingGoal=id;$('#tpGoalHeading').textContent='تعديل الهدف';
+ $('#tpGoalTitle').value=g.title;$('#tpGoalLevel').value=g.level;$('#tpGoalTarget').value=g.targetHours;
+ $('#tpGoalStart').value=g.startDate;$('#tpGoalEnd').value=g.endDate;$('#tpGoalDescription').value=g.description||'';
+ $('#tpGoalAchieved').checked=!!g.achieved;tpParentOptions(g.parentId);
+ $('#tpSaveGoal').textContent='حفظ التعديل';$('#tpCancelGoal').hidden=false;
+ $('#tpGoalPanel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function tpValidateDate(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&tpFmtDate(tpParseDate(d))===d;}
+function tpSaveEntry(e){
+ e.preventDefault();
+ if(!cloudReady){alertToast('سجّل الدخول وانتظر اتصال السحابة أولًا.');return;}
+ const mode=$('#tpRepeat').value,title=$('#tpTitle').value.trim(),
+  hour=Number($('#tpHour').value),duration=Number($('#tpDuration').value),
+  goalId=$('#tpTaskGoal').value;
+ const entry={id:tpEditingEntry||uid(),title,mode,hour,duration,
+  date:mode==='once'?$('#tpOnceDate').value:'',
+  startDate:mode==='weekly'?$('#tpStart').value:'',
+  endDate:mode==='weekly'?$('#tpEnd').value:'',
+  days:mode==='weekly'?$('#tpDaysChecks input:checked').map(x=>Number(x.value)):[],
+  goalId,note:$('#tpTaskNote').value.trim()};
+ if(!title||!Number.isInteger(hour)||hour<0||hour>23||!Number.isInteger(duration)||duration<1||hour+duration>24){
+  alertToast('أدخل المهمة والساعة والمدة بشكل صحيح.');return;
+ }
+ if(mode==='once'&&!tpValidateDate(entry.date)){alertToast('حدد تاريخ المهمة بشكل صحيح.');return;}
+ if(mode==='weekly'&&(!entry.days.length||!tpValidateDate(entry.startDate)||entry.endDate&&(!tpValidateDate(entry.endDate)||entry.endDate<entry.startDate))){
+  alertToast('حدد أيام التكرار وبداية صحيحة ونهاية لاحقة إن وجدت.');return;
+ }
+ if(goalId&&!tpGoalList().some(g=>g.id===goalId)){alertToast('الهدف المرتبط غير موجود.');return;}
+ if(tpEntryList().some(x=>x.id!==entry.id&&tpEntryConflict(entry,x))){
+  alertToast('هناك مهمة أخرى في نفس اليوم والساعات. غيّر الوقت أو المدة.');return;
+ }
+ const old=tpEntryList().find(x=>x.id===entry.id),now=new Date().toISOString();
+ if(old)Object.assign(old,entry,{updatedAt:now});else tpEntryList().push({...entry,createdAt:now,updatedAt:now});
+ save();renderTimePlanner();tpResetEntry();alertToast('تم تسجيل الجدول؛ جارٍ حفظه في السحابة.');
+}
+function tpSaveGoal(e){
+ e.preventDefault();
+ if(!cloudReady){alertToast('انتظر الاتصال بالسحابة قبل حفظ الهدف.');return;}
+ const title=$('#tpGoalTitle').value.trim(),level=$('#tpGoalLevel').value,
+  targetHours=Number($('#tpGoalTarget').value),startDate=$('#tpGoalStart').value,endDate=$('#tpGoalEnd').value,
+  parentId=level==='strategic'?'':$('#tpGoalParent').value;
+ if(!title||!['operational','tactical','strategic'].includes(level)||!Number.isFinite(targetHours)||targetHours<=0||targetHours>10000||!tpValidateDate(startDate)||!tpValidateDate(endDate)||startDate>endDate){
+  alertToast('راجع اسم الهدف والساعات المستهدفة والفترة.');return;
+ }
+ const id=tpEditingGoal||uid();
+ if(parentId&&(parentId===id||!tpGoalList().some(g=>g.id===parentId&&g.level===({operational:'tactical',tactical:'strategic'}[level])))){
+  alertToast('اختر هدفًا رئيسيًا من المستوى الصحيح.');return;
+ }
+ const next={id,title,level,targetHours,startDate,endDate,parentId,description:$('#tpGoalDescription').value.trim(),
+  achieved:$('#tpGoalAchieved').checked};
+ const old=tpGoalList().find(x=>x.id===id),now=new Date().toISOString();
+ if(old)Object.assign(old,next,{updatedAt:now});else tpGoalList().push({...next,createdAt:now,updatedAt:now});
+ save();renderTimePlanner();tpResetGoal();alertToast('تم حفظ الهدف وربطه بمخططات الوقت.');
+}
+function tpToggleDone(entryId,date,manualHours){
+ const entry=tpEntryList().find(e=>e.id===entryId);
+ if(!entry||!tpApplies(entry,date))return;
+ if(!cloudReady){alertToast('انتظر اتصال السحابة لحفظ الإنجاز.');return;}
+ const old=tpLogList().find(l=>l.entryId===entryId&&l.date===date);
+ if(manualHours!==undefined){
+  const hours=Number(manualHours);
+  if(!old?.done||!Number.isFinite(hours)||hours<=0||hours>24){alertToast('أدخل ساعات فعلية بين 0 و24.');return;}
+  old.hours=Math.round(hours*10)/10;old.updatedAt=new Date().toISOString();
+ }else if(old?.done){
+  db.timeLogs=db.timeLogs.filter(l=>!(l.entryId===entryId&&l.date===date));
+ }else if(old){old.done=true;old.hours=entry.duration;old.updatedAt=new Date().toISOString();}
+ else tpLogList().push({id:uid(),entryId,date,done:true,hours:entry.duration,updatedAt:new Date().toISOString()});
+ save();renderTimePlanner();alertToast('تم تحديث الإنجاز والساعات الفعلية.');
+}
+function tpRenderGrid(){
+ $('#tpWeekPick').value=tpWeekAnchor;
+ const days=tpWeekDates(),end=days[6],tod=localToday();
+ $('#tpWeekLabel').textContent=days[0]+' — '+end;
+ const instances=tpInstances(days[0],end);
+ const grid=Array.from({length:7},()=>({starts:new Map(),covered:new Set()}));
+ for(const inst of instances){
+  const d=tpDayIndex(inst.date),column=grid[d],hour=Number(inst.entry.hour),length=Number(inst.entry.duration);
+  if(!column.starts.has(hour)&&!Array.from({length},(_,i)=>hour+i).some(i=>column.covered.has(i))){
+   column.starts.set(hour,inst);
+   for(let i=hour;i<hour+length;i++)column.covered.add(i);
+  }
+ }
+ let html='<thead><tr><th class="tp-hour">الساعة</th>'+days.map((date,i)=>'<th class="'+(date===tod?'tp-today':'')+'">'+tpDayNames[i]+'<small style="display:block;font-size:10px">'+date.slice(5)+'</small></th>').join('')+'</tr></thead><tbody>';
+ for(let hour=0;hour<24;hour++){
+  html+='<tr><td class="tp-hour">'+String(hour).padStart(2,'0')+':00</td>';
+  for(let d=0;d<7;d++){
+   const column=grid[d],date=days[d];
+   const inst=column.starts.get(hour);
+   if(inst){
+    const e=inst.entry,done=!!inst.done;
+    html+='<td class="tp-filled" rowspan="'+e.duration+'"><div class="tp-event '+(done?'done':'')+'"><strong>'+safe(e.title)+'</strong>'
+     +'<small>'+String(e.hour).padStart(2,'0')+':00 · '+e.duration+' س'+(e.goalId?' · مرتبط بهدف':'')+'</small>'
+     +(e.note?'<small>'+safe(e.note)+'</small>':'')
+     +'<div class="tp-event-actions"><button type="button" data-tp-action="toggle" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+(done?'✓ تم':'تم؟')+'</button>'
+     +(done?'<button type="button" data-tp-action="hours" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+Number(inst.done.hours||0)+' س</button>':'')
+     +'<button type="button" data-tp-action="edit" data-id="'+safe(e.id)+'">تعديل</button></div></div></td>';
+   }else if(!column.covered.has(hour)){
+    html+='<td class="tp-empty '+(date===tod?'tp-today':'')+'" data-tp-add="'+date+'" data-hour="'+hour+'" title="اضغط لجدولة مهمة في هذا الوقت"></td>';
+   }
+  }
+  html+='</tr>';
+ }
+ $('#tpWeekGrid').innerHTML=html+'</tbody>';
+}
+function tpRenderDayBars(){
+ const dates=tpWeekDates(),rows=dates.map(d=>tpStats(d,d));
+ const max=Math.max(...rows.map(x=>Math.max(x.planned,x.actual)),1);
+ $('#tpWeekBars').innerHTML=rows.map((v,i)=>
+ '<div class="tp-bar-card"><b>'+tpDayNames[i]+'</b><small>'+v.actual+' / '+v.planned+' س</small><div class="tp-bar-track"><span style="width:'+Math.round(v.planned/max*100)+'%"></span></div><div class="tp-bar-track is-done" style="margin-top:3px"><span style="width:'+Math.round(v.actual/max*100)+'%"></span></div></div>').join('');
+ const week=tpStats(dates[0],dates[6]),strategy=tpGoalList().filter(g=>g.level==='strategic'&&tpDateWithin(localToday(),g.startDate,g.endDate));
+ const kpis=[
+  ['المخطط لهذا الأسبوع',week.planned+' ساعة','من '+week.count+' جلسة'],
+  ['الإنجاز المؤكد',week.actual+' ساعة',week.doneCount+' جلسة مكتملة'],
+  ['الالتزام بالوقت',week.percentage+'%', 'نسبة الساعات المؤكدة إلى المخططة'],
+  ['الأهداف الاستراتيجية',strategy.length,'هدف سنوي نشط']
+ ];
+ $('#tpKpis').innerHTML=kpis.map(k=>'<div class="tp-kpi"><small>'+k[0]+'</small><strong>'+k[1]+'</strong><em>'+k[2]+'</em></div>').join('');
+}
+function tpRenderEntries(){
+ const list=tpEntryList().slice().sort((a,b)=>a.hour-b.hour||a.title.localeCompare(b.title,'ar'));
+ $('#tpEntryList').innerHTML=list.length?list.map(e=>{
+  const g=tpGoalList().find(x=>x.id===e.goalId),schedule=e.mode==='once'?e.date:(e.days||[]).map(i=>tpDayNames[i]).join('، ');
+  return '<div class="tp-entry-row"><div style="min-width:0"><strong>'+safe(e.title)+'</strong><small>'+safe(schedule)+' · '+String(e.hour).padStart(2,'0')+':00 · '+e.duration+' س'+(g?' · '+safe(g.title):'')+'</small></div><div class="tp-row-actions"><button type="button" data-tp-action="edit" data-id="'+safe(e.id)+'">تعديل</button><button type="button" class="tp-danger" data-tp-action="delete" data-id="'+safe(e.id)+'">حذف</button></div></div>';
+ }).join(''):'<div class="tp-empty-msg">ابدأ بإضافة جلسة مثل «تعلم فوتوشوب» الساعة 8 صباحًا وحدد أيام التكرار.</div>';
+}
+function tpGoalMarkup(g){
+ const h=tpGoalHours(g),progress=tpGoalPercent(g);
+ return '<div class="tp-goal-row"><div class="tp-goal-body"><span class="tp-goal-tag">'+tpLevelNames[g.level]+(g.achieved?' · تحقق ✓':'')+'</span><strong>'+safe(g.title)+'</strong>'
+ +'<small>'+safe(g.startDate)+' — '+safe(g.endDate)+(g.description?' · '+safe(g.description):'')+'</small>'
+ +'<div class="tp-prog"><span style="width:'+progress+'%"></span></div><small>'+h+' / '+g.targetHours+' ساعة · '+progress+'% من وقت التعلم أو العمل'+(g.achieved?' · النتيجة تحققت':'')+'</small></div>'
+ +'<div class="tp-row-actions"><button type="button" data-tp-action="edit-goal" data-id="'+safe(g.id)+'">تعديل</button><button type="button" class="tp-danger" data-tp-action="delete-goal" data-id="'+safe(g.id)+'">حذف</button></div></div>';
+}
+function tpRenderGoals(){
+ const order={strategic:0,tactical:1,operational:2};
+ const goals=tpGoalList().slice().sort((a,b)=>order[a.level]-order[b.level]||a.endDate.localeCompare(b.endDate));
+ $('#tpGoalsList').innerHTML=goals.length?goals.map(tpGoalMarkup).join(''):'<div class="tp-empty-msg">أضف هدفًا سنويًا مثل اجتياز تقييم فوتوشوب، ثم هدفًا شهريًا وأسبوعيًا مرتبطًا به.</div>';
+ const selected=$('#tpTaskGoal').value;tpGoalOptions(selected);
+}
+function tpRenderYear(){
+ $('#tpYearLabel').textContent=tpSelectedYear;
+ const months=Array.from({length:12},(_,i)=>{
+  const from=tpSelectedYear+'-'+two(i+1)+'-01',d=tpParseDate(from);d.setMonth(d.getMonth()+1);d.setDate(0);
+  return {from,to:tpFmtDate(d),month:i+1};
+ });
+ const stats=months.map(m=>tpStats(m.from,m.to));
+ const max=Math.max(1,...stats.map(s=>s.planned));
+ $('#tpYearBars').innerHTML=stats.map((s,i)=>
+ '<div class="tp-year-bar"><div class="tp-year-bar-track"><span style="height:'+Math.max(2,Math.round(s.planned/max*88))+'px"></span><span class="done" style="height:'+Math.max(2,Math.round(s.actual/max*88))+'px"></span></div><small>'+tpMonthNames[i].slice(0,3)+'</small></div>').join('');
+ $('#tpMonths').innerHTML=months.map((m,i)=>{
+  const s=stats[i],tactical=tpGoalList().filter(g=>g.level==='tactical'&&g.startDate<=m.to&&g.endDate>=m.from);
+  return '<div class="tp-month '+(localToday().slice(0,7)===m.from.slice(0,7)?'today':'')+'"><div class="tp-month-head"><b>'+tpMonthNames[i]+'</b><small>'+tpSelectedYear+'</small></div>'
+   +'<div class="tp-month-meta">منجز '+s.actual+' / '+s.planned+' س · '+s.percentage+'%</div><div class="tp-prog"><span style="width:'+s.percentage+'%"></span></div>'
+   +(tactical.length?tactical.slice(0,4).map(g=>'<div class="tp-month-goal">'+safe(g.title)+'<small> · '+tpGoalPercent(g,m.from,m.to)+'%'+(g.achieved?' ✓':'')+'</small></div>').join(''):'<div class="tp-month-goal"><small>لا يوجد هدف شهري محدد بعد</small></div>')
+   +'</div>';
+ }).join('');
+ const strategic=tpGoalList().filter(g=>g.level==='strategic'&&g.startDate<=tpSelectedYear+'-12-31'&&g.endDate>=tpSelectedYear+'-01-01');
+ $('#tpStrategy').innerHTML='<h3>الأهداف الاستراتيجية للسنة</h3><div class="tp-goals-list">'+(strategic.length?strategic.map(tpGoalMarkup).join(''):'<div class="tp-empty-msg">حدد الهدف السنوي الرئيسي، واربط به أهدافك الشهرية والأسبوعية.</div>')+'</div>';
+}
+function renderTimePlanner(){
+ if(!$('#tpWeekGrid'))return;
+ tpRenderGrid();tpRenderDayBars();tpRenderEntries();tpRenderGoals();tpRenderYear();
+}
+function tpInitialize(){
+ $('#tpHour').innerHTML=Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,'0')+':00</option>').join('');
+ $('#tpDaysChecks').innerHTML=tpDayNames.map((name,i)=>'<label><input type="checkbox" value="'+i+'">'+name+'</label>').join('');
+ $('#tpEntryForm').addEventListener('submit',tpSaveEntry);
+ $('#tpGoalForm').addEventListener('submit',tpSaveGoal);
+ $('#tpRepeat').addEventListener('change',tpSwitchMode);
+ $('#tpHour').addEventListener('change',()=>tpDurationOptions(Number($('#tpDuration').value)));
+ $('#tpGoalLevel').addEventListener('change',tpSetGoalDefaults);
+ $('#tpCancelEntry').addEventListener('click',tpResetEntry);
+ $('#tpCancelGoal').addEventListener('click',tpResetGoal);
+ $('#tpPrevWeek').addEventListener('click',()=>{tpWeekAnchor=tpShiftDate(tpWeekAnchor,-7);renderTimePlanner();});
+ $('#tpNextWeek').addEventListener('click',()=>{tpWeekAnchor=tpShiftDate(tpWeekAnchor,7);renderTimePlanner();});
+ $('#tpWeekPick').addEventListener('change',()=>{if(tpValidateDate($('#tpWeekPick').value)){tpWeekAnchor=tpStartOfWeek($('#tpWeekPick').value);renderTimePlanner();}});
+ $('#tpPrevYear').addEventListener('click',()=>{tpSelectedYear--;tpRenderYear();});
+ $('#tpNextYear').addEventListener('click',()=>{tpSelectedYear++;tpRenderYear();});
+ $('#tpJumpEntry').addEventListener('click',()=>$('#tpEntryPanel').scrollIntoView({behavior:'smooth',block:'start'}));
+ $('#tpJumpGoal').addEventListener('click',()=>$('#tpGoalPanel').scrollIntoView({behavior:'smooth',block:'start'}));
+ $('#page-time').addEventListener('click',event=>{
+  const btn=event.target.closest('[data-tp-action]');
+  if(btn){
+   const id=btn.dataset.id||btn.dataset.entry,action=btn.dataset.tpAction;
+   if(action==='edit')tpEditEntry(id);
+   if(action==='edit-goal')tpEditGoal(id);
+   if(action==='toggle')tpToggleDone(id,btn.dataset.date);
+   if(action==='hours'){
+    const old=tpLogList().find(l=>l.entryId===id&&l.date===btn.dataset.date);
+    if(old?.done){const response=prompt('كم ساعة أنجزت فعليًا؟',String(old.hours));
+     if(response!==null&&response.trim()!=='')tpToggleDone(id,btn.dataset.date,response);}
+   }
+   if(action==='delete'){
+    if(!cloudReady)return;
+    if(!confirm('هل تريد حذف هذا الجدول؟ ستُحذف سجلات إنجازه السابقة أيضًا، مما يؤثر على تقارير الوقت والأهداف.'))return;
+    db.timeEntries=tpEntryList().filter(x=>x.id!==id);
+    db.timeLogs=tpLogList().filter(x=>x.entryId!==id);
+    if(tpEditingEntry===id)tpResetEntry();
+    save();renderTimePlanner();alertToast('تم حذف الجدول وسجلاته بعد التأكيد.');
+   }
+   if(action==='delete-goal'){
+    if(!cloudReady)return;
+    if(tpEntryList().some(e=>e.goalId===id)||tpGoalList().some(g=>g.parentId===id)){
+     alertToast('هذا الهدف مرتبط بمهام أو أهداف أخرى. أزل الروابط أولًا قبل حذفه.');return;
+    }
+    if(!confirm('حذف الهدف من الخطة نهائيًا؟'))return;
+    db.timeGoals=tpGoalList().filter(g=>g.id!==id);
+    if(tpEditingGoal===id)tpResetGoal();
+    save();renderTimePlanner();alertToast('تم حذف الهدف.');
+   }
+   return;
+  }
+  const empty=event.target.closest('[data-tp-add]');
+  if(empty){
+   tpResetEntry();$('#tpRepeat').value='once';tpSwitchMode();
+   $('#tpOnceDate').value=empty.dataset.tpAdd;
+   $('#tpHour').value=empty.dataset.hour;tpDurationOptions(1);
+   $('#tpEntryPanel').scrollIntoView({behavior:'smooth',block:'start'});
+   $('#tpTitle').focus({preventScroll:true});
+  }
+ });
+ tpResetEntry();tpResetGoal();
+}
+tpInitialize();
+// --- End time planner.
+
 $('#dashFrom').value=monthStart();$('#dashTo').value=localToday();$('#reportFrom').value=monthStart();$('#reportTo').value=localToday();save();renderAll();loadReportText();renderReport();
 
 
