@@ -307,6 +307,7 @@ body{overflow-x:hidden}
 </style>
 <style id="shulan-time-and-goals">
 /* Shulan unified weekly planner, cascading objectives, annual review */
+.tp-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:11px;color:#796671;margin:13px 0 3px}.tp-legend span{display:inline-flex;align-items:center;gap:5px}.tp-legend i{display:inline-block;width:12px;height:8px;border-radius:2px}.tp-legend-plan{background:#e8cad0}.tp-legend-done{background:#762e46}
 .tp-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(125deg,#fffaf6,#f2e8e9);border:1px solid #e8d7db;margin-bottom:14px;flex-wrap:wrap}
 .tp-hero h2{font-size:26px;color:#562134;margin:4px 0 8px}.tp-hero p{font-size:13px;line-height:1.8;max-width:680px;margin:0;color:#6e5b61}
 .tp-eyebrow{letter-spacing:2px;font-size:9px;font-weight:800;color:#a57780}
@@ -435,6 +436,7 @@ body{overflow-x:hidden}
     <div class="tp-week-caption"><strong id="tpWeekLabel"></strong><span>اضغط «تم» لتسجيل الساعات الفعلية، أو «إلغاء» للتراجع عن تسجيلها.</span></div>
     <div class="tp-scroll" id="tpGridScroll"><table class="tp-table" id="tpWeekGrid" aria-label="مخطط أسبوعي من 24 ساعة وسبعة أيام"></table></div>
     <p class="tp-mobile-hint">على الجوال مرّر الجدول أفقيًا لمشاهدة بقية أيام الأسبوع.</p>
+    <div class="tp-legend"><span><i class="tp-legend-plan"></i>ساعات مخططة</span><span><i class="tp-legend-done"></i>ساعات مؤكدة الإنجاز</span></div>
     <div id="tpWeekBars" class="tp-day-bars"></div>
    </div>
    <div class="tp-editor-grid">
@@ -476,7 +478,7 @@ body{overflow-x:hidden}
      <div><h2>الأشهر الـ12 والأهداف</h2><p>كل شهر يعرض الساعات المخططة والمنجزة، والأهداف التكتيكية المرتبطة به، مع ملخص الأهداف الاستراتيجية للسنة.</p></div>
      <div class="tp-year-nav"><button type="button" class="btn small" id="tpPrevYear">‹</button><strong id="tpYearLabel">2026</strong><button type="button" class="btn small" id="tpNextYear">›</button></div>
     </div>
-    <div class="tp-year-bars" id="tpYearBars"></div>
+    <div class="tp-legend"><span><i class="tp-legend-plan"></i>المخطط شهريًا</span><span><i class="tp-legend-done"></i>المنجز فعليًا</span></div><div class="tp-year-bars" id="tpYearBars"></div>
     <div class="tp-months" id="tpMonths"></div>
     <div class="tp-strategy" id="tpStrategy"></div>
    </div>
