@@ -80,7 +80,7 @@ jobs:
                  rejectedConflict,onceAdded,weekPlan,actual,rollup,cards,octoberGoal:october.includes('تطوير مهارات التصميم'),
                  repeatInstances:repeats,preservedJobs:originalJobs,saves,cloudArrayPreserved:db.timeEntries.length===3&&db.timeLogs.length===2};
               });
-              await page.setViewport({width:390,height:820,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+              await page.setViewport({width:390,height:820,deviceScaleFactor:1}); // Keep current document: toggling mobile emulation reloads the page.
               const mobile=await page.evaluate(()=>({body:document.documentElement.scrollWidth,screen:innerWidth,gridOverflow:document.querySelector('#tpGridScroll').scrollWidth>document.querySelector('#tpGridScroll').clientWidth,gridScrollWidth:document.querySelector('#tpGridScroll').scrollWidth,gridClientWidth:document.querySelector('#tpGridScroll').clientWidth,tableWidth:document.querySelector('#tpWeekGrid').getBoundingClientRect().width,gridDisplay:getComputedStyle(document.querySelector('#tpGridScroll')).display,sectionDisplay:getComputedStyle(document.querySelector('#page-time')).display,monthCards:document.querySelectorAll('#tpMonths .tp-month').length}));
               console.log('TIME PLANNER QA',JSON.stringify({result,mobile,errors}));
               if(errors.length)throw Error('Page JS error '+errors.join('; '));
