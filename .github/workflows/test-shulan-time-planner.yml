@@ -1,0 +1,98 @@
+name: Verify Shulan time planner and cascading goals
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-time-planner.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  planner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless browser
+        run: npm install --prefix /tmp/shulan-tp-qa puppeteer-core@24 --no-audit --no-fund
+      - name: Verify 24x7, multi-hour recurrence, goal rollup, monthly goals and mobile
+        env:
+          NODE_PATH: /tmp/shulan-tp-qa/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core'),fs=require('fs'),path=require('path');
+          const bin=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(fs.existsSync);
+          if(!bin)throw Error('Chrome unavailable');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:bin,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage(),errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('file://'+path.resolve('public/shulan-management.html'),{waitUntil:'domcontentloaded',timeout:55000});
+              await page.waitForFunction(()=>typeof tpSaveEntry==='function'&&typeof tpGoalHours==='function',{timeout:16000});
+              const result=await page.evaluate(()=>{
+                db={clients:[{id:'qa-a',name:'عميل تجريبي',phone:'',details:''}],jobs:[{id:'existing',clientId:'qa-a',title:'مهمة عميل محفوظة',status:'done',date:'2026-10-26'}],reportNotes:{},cashMovements:[],timeEntries:[],timeGoals:[],timeLogs:[]};
+                let saves=0;save=()=>{saves++};cloudReady=true;tpWeekAnchor='2026-10-24';tpSelectedYear=2026;page('time');renderAll();
+                const set=(id,value)=>{document.querySelector('#'+id).value=value};
+                const saveGoal=(name,level,start,end,target,parent)=>{
+                  set('tpGoalTitle',name);set('tpGoalLevel',level);tpParentOptions();set('tpGoalTarget',target);
+                  set('tpGoalStart',start);set('tpGoalEnd',end);set('tpGoalParent',parent||'');
+                  document.querySelector('#tpGoalForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+                  return db.timeGoals.at(-1)?.id;
+                };
+                const annual=saveGoal('اجتياز اختبار LinkedIn فوتوشوب','strategic','2026-01-01','2026-12-31',250,'');
+                const tactical=saveGoal('تطوير مهارات التصميم في أكتوبر','tactical','2026-10-01','2026-10-31',60,annual);
+                const weekly=saveGoal('12 ساعة تدريب أسبوعي','operational','2026-10-24','2026-10-30',12,tactical);
+                const saveEntry=(name,day,hour,duration,goal)=>{
+                  set('tpTitle',name);set('tpRepeat','weekly');tpSwitchMode();set('tpStart','2026-10-24');set('tpEnd','2026-12-31');
+                  document.querySelectorAll('#tpDaysChecks input').forEach(x=>x.checked=Number(x.value)===day);
+                  set('tpHour',hour);tpDurationOptions(duration);set('tpTaskGoal',goal);
+                  document.querySelector('#tpEntryForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+                  return db.timeEntries.at(-1)?.id;
+                };
+                const ps=saveEntry('تعلم فوتوشوب',0,8,2,weekly);
+                const il=saveEntry('تعلم إليستريتور',1,8,3,tactical);
+                const totalBeforeConflict=db.timeEntries.length;
+                saveEntry('تعارض وقت',0,9,1,weekly);
+                const rejectedConflict=db.timeEntries.length===totalBeforeConflict;
+                tpResetEntry();set('tpTitle','جلسة واحدة');set('tpRepeat','once');tpSwitchMode();set('tpOnceDate','2026-10-27');set('tpHour',10);tpDurationOptions(2);
+                document.querySelector('#tpEntryForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+                const onceAdded=db.timeEntries.some(e=>e.mode==='once'&&e.date==='2026-10-27');
+                const rows=document.querySelectorAll('#tpWeekGrid tbody tr').length;
+                const headers=[...document.querySelectorAll('#tpWeekGrid thead th')].map(e=>e.textContent.trim());
+                const satSpan=Number(document.querySelector('.tp-event strong')?.closest('td')?.rowSpan);
+                const sunday=[...document.querySelectorAll('.tp-event strong')].find(e=>e.textContent==='تعلم إليستريتور');
+                const sunSpan=Number(sunday?.closest('td')?.rowSpan);
+                const weekPlan=tpStats('2026-10-24','2026-10-30');
+                tpToggleDone(ps,'2026-10-24');
+                tpToggleDone(il,'2026-10-25');
+                tpToggleDone(ps,'2026-10-24',1.5);
+                const op=tpGoalList().find(g=>g.id===weekly),tac=tpGoalList().find(g=>g.id===tactical),str=tpGoalList().find(g=>g.id===annual);
+                const actual=tpStats('2026-10-24','2026-10-30');
+                const rollup={operational:tpGoalHours(op),tactical:tpGoalHours(tac),strategic:tpGoalHours(str)};
+                const cards=document.querySelectorAll('#tpMonths .tp-month').length;
+                const october=document.querySelectorAll('#tpMonths .tp-month')[9]?.textContent;
+                tpWeekAnchor='2026-10-31';renderTimePlanner();
+                const repeats=tpInstances('2026-10-31','2026-11-06').filter(x=>x.entry.id===ps||x.entry.id===il).length;
+                const originalJobs=db.jobs.length;
+                return {goalCount:db.timeGoals.length,entryCount:db.timeEntries.length,rows,headers:headers.slice(0,3),satSpan,sunSpan,
+                 rejectedConflict,onceAdded,weekPlan,actual,rollup,cards,octoberGoal:october.includes('تطوير مهارات التصميم'),
+                 repeatInstances:repeats,preservedJobs:originalJobs,saves,cloudArrayPreserved:db.timeEntries.length===3&&db.timeLogs.length===2};
+              });
+              await page.setViewport({width:390,height:820,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+              const mobile=await page.evaluate(()=>({body:document.documentElement.scrollWidth,screen:innerWidth,gridOverflow:document.querySelector('#tpGridScroll').scrollWidth>document.querySelector('#tpGridScroll').clientWidth, monthCards:document.querySelectorAll('#tpMonths .tp-month').length}));
+              console.log('TIME PLANNER QA',JSON.stringify({result,mobile,errors}));
+              if(errors.length)throw Error('Page JS error '+errors.join('; '));
+              const assert=(ok,why)=>{if(!ok)throw Error(why)};
+              assert(result.goalCount===3&&result.entryCount===3&&result.rejectedConflict&&result.onceAdded,'Saving/repeat conflict');
+              assert(result.rows===24&&result.headers[1].includes('السبت')&&result.headers[2].includes('الأحد'),'Grid orientation');
+              assert(result.satSpan===2&&result.sunSpan===3,'Duration not spanning cells');
+              assert(result.weekPlan.planned===7&&result.actual.actual===4.5,'Weekly totals');
+              assert(result.rollup.operational===1.5&&result.rollup.tactical===4.5&&result.rollup.strategic===4.5,'Cascading goal progress');
+              assert(result.cards===12&&result.octoberGoal&&result.repeatInstances===2,'Year/month/repeats');
+              assert(result.preservedJobs===1&&result.cloudArrayPreserved&&result.saves>=7,'Saved state');
+              assert(mobile.screen===390&&mobile.body<=393&&mobile.gridOverflow&&mobile.monthCards===12,'Mobile overflow');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
