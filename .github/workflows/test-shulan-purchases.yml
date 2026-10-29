@@ -1,0 +1,121 @@
+name: Test Shulan supplier purchase invoices
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - 'public/shulan-purchases.js'
+      - '.github/workflows/test-shulan-purchases.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  invoices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser
+        run: npm install --prefix /tmp/shulan-invoices-test puppeteer-core@24 --no-audit --no-fund
+      - name: Validate supplier invoices, currency, units, receipt and backup
+        env:
+          NODE_PATH: /tmp/shulan-invoices-test/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core'),fs=require('fs'),path=require('path');
+          const bin=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(fs.existsSync);
+          if(!bin)throw Error('No browser');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:bin,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage();const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('file://'+path.resolve('public/shulan-management.html'),{waitUntil:'domcontentloaded',timeout:55000});
+              await page.waitForFunction(()=>typeof renderPurchases==='function'&&typeof invSaveForm==='function',{timeout:16000});
+              const test=await page.evaluate(async()=>{
+                let saved=0,uploads=0,signed=0;
+                db={clients:[{id:'orig',name:'عميل محفوظ',phone:'',details:''}],jobs:[{id:'job',clientId:'orig',title:'عمل قديم',status:'done',date:'2026-10-29'}],
+                  reportNotes:{},cashMovements:[{id:'cash'}],timeEntries:[{id:'time'}],timeGoals:[],timeLogs:[],supplierInvoices:[]};
+                save=()=>{saved++};cloudReady=true;cloudCurrentUserId='mock-user-9';
+                cloudApi={storage:{from:(bucket)=>({
+                  upload:async(key,file,opts)=>{if(bucket!=='shulan-supplier-invoices')throw Error('Wrong bucket');uploads++;return {data:{path:key},error:null};},
+                  createSignedUrl:async(key,ttl)=>{signed++;return {data:{signedUrl:'https://example.com/receipt'},error:null};}
+                })}};
+                renderAll();page('purchases');
+                document.querySelector('#invNew').click();
+                document.querySelector('#invSupplier').value='مورد أكريلك عدن';
+                document.querySelector('#invDate').value='2026-10-23';
+                document.querySelector('#invNumber').value='INV-1001';
+                document.querySelector('#invCurrency').value='ر.ي';
+                const first=document.querySelector('[data-inv-row]');
+                first.querySelector('.inv-name').value='أكريلك أبيض 3 مم';
+                first.querySelector('.inv-qty').value=2;
+                first.querySelector('.inv-price').value=1250;
+                first.querySelector('.inv-unit').value='لوح';
+                document.querySelector('#invAddItem').click();
+                const second=document.querySelectorAll('[data-inv-row]')[1];
+                second.querySelector('.inv-name').value='فويل ذهبي';
+                second.querySelector('.inv-qty').value=1.5;
+                second.querySelector('.inv-price').value=2000;
+                second.querySelector('.inv-unit').value='أخرى';
+                second.querySelector('.inv-unit').dispatchEvent(new Event('change',{bubbles:true}));
+                second.querySelector('.inv-unit-extra').value='رزمة';
+                invRecalculate();
+                const formTotal=document.querySelector('#invFormTotal').textContent;
+                const testFile=new File([new Uint8Array([37,80,68,70,45,49,46,52])],'invoice.pdf',{type:'application/pdf'});
+                const dt=new DataTransfer();dt.items.add(testFile);document.querySelector('#invFile').files=dt.files;
+                await invSaveForm({preventDefault(){}});
+                const firstRecord=db.supplierInvoices[0],firstTotal=invTotal(firstRecord);
+                const items=firstRecord.items.map(i=>({name:i.name,unit:i.unit,quantity:i.quantity,unitPrice:i.unitPrice}));
+                const uploadKept=firstRecord.attachment?.path.startsWith('mock-user-9/')&&firstRecord.attachment?.name==='invoice.pdf';
+                document.querySelector('#invNew').click();
+                document.querySelector('#invSupplier').value='مورد أصباغ';
+                document.querySelector('#invDate').value='2026-09-14';
+                document.querySelector('#invCurrency').value='ر.س';
+                const r=document.querySelector('[data-inv-row]');
+                r.querySelector('.inv-name').value='رش دهان';
+                r.querySelector('.inv-qty').value=4;
+                r.querySelector('.inv-price').value=22.5;
+                await invSaveForm({preventDefault(){}});
+                const secondSaved=db.supplierInvoices.length===2;
+                const noFX=Object.keys((()=>{const groups={};db.supplierInvoices.forEach(v=>groups[v.currency]=(groups[v.currency]||0)+invTotal(v));return groups;})()).sort().join(',')==='$,ر.ي'?false:true;
+                document.querySelector('#invSearch').value='أكريلك';renderPurchases();
+                const found=invFiltered().length===1;
+                const details=!!document.querySelector('[data-inv-action=details]');
+                const lineItems=items.length===2;
+                const invId=db.supplierInvoices[0].id;
+                invOpen(db.supplierInvoices[0]);
+                const editedUnitPrice=document.querySelector('.inv-price').value;
+                document.querySelector('.inv-price').value='1500';
+                await invSaveForm({preventDefault(){}});
+                const historyPreserved=db.supplierInvoices.find(x=>x.id===invId).date==='2026-10-23';
+                const updatedTotal=invTotal(db.supplierInvoices.find(x=>x.id===invId));
+                const backup=JSON.parse(JSON.stringify(db));
+                return {saved,uploads,signed,formTotal,firstTotal,secondSaved,found,details,lineItems,items,
+                  uploadKept,editedUnitPrice,historyPreserved,updatedTotal,allCurrencies:[...new Set(db.supplierInvoices.map(x=>x.currency))].sort(),
+                  originalClient:backup.clients[0].name,originalJob:backup.jobs[0].title,
+                  originalFinance:backup.cashMovements.length,originalTime:backup.timeEntries.length,
+                  exportedInvoiceCount:backup.supplierInvoices.length,
+                  customUnit:items[1].unit,
+                  viewMounted:document.querySelector('#page-purchases')!==null};
+              });
+              for(const width of [320,390,1440]){
+                await page.setViewport({width,height:840,deviceScaleFactor:1});
+                const geo=await page.evaluate(()=>({doc:document.documentElement.scrollWidth,body:document.body.scrollWidth,width:innerWidth}));
+                if(geo.doc>width+3)throw Error('Horizontal overflow '+width+' '+JSON.stringify(geo));
+              }
+              console.log('SUPPLIER INVOICE QA',JSON.stringify(test));
+              if(errors.length)throw Error('Page JS errors: '+errors.join('; '));
+              function ok(expr,name){if(!expr)throw Error('FAILED '+name)}
+              ok(test.firstTotal===5500&&test.updatedTotal===6000,'line item totals and historic edit');
+              ok(test.customUnit==='رزمة'&&test.items[0].unit==='لوح','unit choices');
+              ok(test.uploads===1&&test.uploadKept,'private file upload');
+              ok(test.secondSaved&&test.found&&test.details&&test.lineItems,'supplier filtering and entry list');
+              ok(test.editedUnitPrice==='1250'&&test.historyPreserved,'editing invoice');
+              ok(test.saved>=3&&test.exportedInvoiceCount===2,'persist and backup');
+              ok(test.allCurrencies.length===2,'multi-currency');
+              ok(test.originalClient==='عميل محفوظ'&&test.originalJob==='عمل قديم'&&test.originalFinance===1&&test.originalTime===1,'existing workspace kept');
+              ok(test.viewMounted,'page exists');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
