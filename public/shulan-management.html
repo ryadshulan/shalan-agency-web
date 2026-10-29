@@ -409,6 +409,50 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
 }
 @media(max-width:360px){.tp-day-pill small{font-size:8px}.tp-agenda-clock{flex-basis:49px}}
 </style>
+<style id="shulan-time-live-focus">
+/* Live hourly focus + compact scheduled items drawer */
+.tp-live-panel{position:relative;background:linear-gradient(118deg,#542039 0%,#742e49 62%,#88435a 100%);color:#fff;border-radius:17px;padding:18px 20px;margin:0 0 14px;display:grid;grid-template-columns:160px minmax(0,1fr);gap:20px;align-items:center;overflow:hidden;box-shadow:0 9px 27px #51203721;min-width:0}
+.tp-live-panel:before{content:"";position:absolute;width:160px;height:160px;border:1px solid #ffffff19;border-radius:50%;left:-60px;top:-80px;pointer-events:none}
+.tp-live-clock{border-left:1px solid #ffffff33;padding-left:17px;min-width:0}
+.tp-live-label{display:flex;gap:7px;align-items:center;letter-spacing:.8px;color:#efdae0;font-size:11px;font-weight:800}
+.tp-live-dot{position:relative;display:inline-block;width:7px;height:7px;border-radius:50%;background:#80f3b2;box-shadow:0 0 0 3px #80f3b21f,0 0 10px #80f3b288;flex-shrink:0}
+.tp-live-dot:after{content:"";position:absolute;inset:-4px;border:1px solid #80f3b264;border-radius:50%;animation:tp-live-pulse 2s ease-in-out infinite}
+@keyframes tp-live-pulse{0%,100%{transform:scale(.8);opacity:.6}50%{transform:scale(1.35);opacity:.12}}
+.tp-live-time{font-family:Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums;font-size:38px;line-height:1.3;font-weight:800;letter-spacing:-1.2px;color:#fff;margin-top:4px;text-align:right}
+.tp-live-day{font-size:10px;color:#ead6de}
+.tp-live-information{min-width:0;display:flex;flex-direction:column;gap:7px}
+.tp-live-information small{font-size:11px;color:#e6cbd5;font-weight:650}
+.tp-live-information strong{font-size:19px;line-height:1.45;overflow-wrap:anywhere;color:white}
+.tp-live-meta{font-size:11px;color:#f1dae1;line-height:1.6}
+.tp-live-progress{height:4px;border-radius:9px;background:#ffffff33;overflow:hidden;width:100%;margin-top:5px}
+.tp-live-progress span{display:block;background:#93efba;height:100%;border-radius:9px;transition:width .3s ease}
+.tp-table tr.tp-live-hour>.tp-hour{background:#79334c!important;color:white!important;font-weight:900;position:sticky;right:0}
+.tp-table tr.tp-live-hour>.tp-hour:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#84efb0;margin-left:6px;box-shadow:0 0 0 3px #70e8a22e;vertical-align:middle}
+.tp-table .tp-current-event{outline:2px solid #59ba88;outline-offset:-2px;box-shadow:inset 0 0 0 1px #b1dfc5}
+.tp-table td.tp-current-cell{background:#f1f9f3}
+.tp-manage-entries{margin-top:15px;border:1px solid #e9dcde;border-radius:11px;background:#fcf9f9}
+.tp-manage-entries summary{list-style:none;cursor:pointer;min-height:45px;display:flex;gap:8px;align-items:center;padding:10px 12px;color:#6c3548;font-size:12px;font-weight:800}
+.tp-manage-entries summary::-webkit-details-marker{display:none}
+.tp-manage-entries summary:after{content:"⌄";font-size:16px;margin-right:auto;transition:transform .2s}
+.tp-manage-entries[open] summary:after{transform:rotate(180deg)}
+.tp-manage-icon{font-size:16px;color:#a97184}
+#tpManagedCount{border-radius:99px;background:#eee0e5;padding:3px 8px;font-size:11px;color:#672b3e}
+.tp-manage-entries summary small{font-size:10px;color:#ae929d;font-weight:400;white-space:nowrap}
+.tp-manage-entries .tp-entry-list{margin:0;padding:8px 10px 12px;max-height:390px;overflow-y:auto;border-top:1px solid #e9dfe1}
+@media(max-width:750px){
+ .tp-live-panel{grid-template-columns:110px minmax(0,1fr);padding:14px 13px;gap:12px;border-radius:15px;margin-bottom:12px}
+ .tp-live-clock{padding-left:10px}
+ .tp-live-time{font-size:29px;letter-spacing:-.6px}
+ .tp-live-information strong{font-size:15px}
+ .tp-live-label{font-size:9px}
+ .tp-live-information small{font-size:9px}
+ .tp-live-meta{font-size:10px}
+ .tp-manage-entries summary{flex-wrap:wrap}
+ .tp-manage-entries summary small{display:none}
+}
+@media(max-width:360px){.tp-live-panel{grid-template-columns:90px minmax(0,1fr);gap:9px;padding:13px 10px}.tp-live-time{font-size:24px}.tp-live-information strong{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.tp-live-dot:after{animation:none}.tp-live-progress span{transition:none}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -456,7 +500,20 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
     <div class="tp-hero-actions"><button type="button" id="tpJumpEntry" class="btn primary">＋ جدولة مهمة</button><button type="button" id="tpJumpGoal" class="btn soft">◎ إضافة هدف</button><button type="button" id="tpInstallButton" class="btn">⌂ إضافة للشاشة الرئيسية</button></div>
    </div>
    <div class="tp-mobile-app-top"><div class="tp-app-avatar">ش</div><div><strong>وقتي وأهدافي</strong><small>لوحة يومية سريعة · شعلان</small></div><button type="button" id="tpInstallAppTop" class="tp-app-install">تثبيت ⊕</button><a href="/shulan-management.html">النظام الكامل ↗</a></div>
-   <div class="tp-daily-panel panel">
+   <div class="tp-live-panel" id="tpLivePanel" role="status" aria-live="off" aria-label="الساعة والمهمة الحالية">
+    <div class="tp-live-clock">
+      <div class="tp-live-label"><span class="tp-live-dot" aria-hidden="true"></span> الآن · LIVE</div>
+      <div id="tpLiveTime" class="tp-live-time" dir="ltr">--:--</div>
+      <div id="tpLiveDay" class="tp-live-day">الوقت الحالي</div>
+    </div>
+    <div class="tp-live-information">
+      <small id="tpLiveState">المهمة المجدولة في هذه الساعة</small>
+      <strong id="tpLiveTask">جارٍ تحديد موعدك…</strong>
+      <div id="tpLiveMeta" class="tp-live-meta">يعتمد على توقيت جهازك</div>
+      <div class="tp-live-progress"><span id="tpLiveProgress" style="width:0%"></span></div>
+    </div>
+  </div>
+  <div class="tp-daily-panel panel">
     <div class="tp-daily-heading"><div><span class="tp-eyebrow">DAILY FOCUS</span><h2 id="tpDailyTitle">جدول اليوم</h2><p id="tpDailyMeta"></p></div><button id="tpDailyAdd" class="tp-daily-plus" type="button" aria-label="إضافة مهمة">＋</button></div>
     <div class="tp-day-strip" id="tpDayStrip"></div>
     <div class="tp-daily-progress"><div class="tp-progress-label"><span>إنجاز اليوم</span><strong id="tpDailyProgressText">0 / 0 ساعات</strong></div><div class="tp-progress-track"><span id="tpDailyProgressBar"></span></div></div>
@@ -491,7 +548,10 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
       <div class="field tp-wide"><label for="tpTaskNote">ملاحظة (اختياري)</label><input type="text" id="tpTaskNote" maxlength="200" placeholder="مثلاً: تنفيذ تمارين Adobe وإعداد ملف تدريب"></div>
       <div class="tp-actions tp-wide"><button class="btn primary" type="submit" id="tpSaveEntry">حفظ المهمة</button><button type="button" id="tpCancelEntry" class="btn" hidden>إلغاء التعديل</button></div>
      </form>
-     <div id="tpEntryList" class="tp-entry-list"></div>
+     <details id="tpManageEntries" class="tp-manage-entries">
+      <summary><span class="tp-manage-icon">▤</span> إدارة المهام المجدولة <span id="tpManagedCount">0</span><small>مخفية لتبقى الشاشة مرتبة</small></summary>
+      <div id="tpEntryList" class="tp-entry-list"></div>
+     </details>
     </div>
     <div class="panel" id="tpGoalPanel">
      <div class="panel-head"><div><h2 id="tpGoalHeading">الأهداف المترابطة</h2><p>تشغيلي أسبوعي ← تكتيكي شهري ← استراتيجي سنوي. الساعات المنجزة تصعد تلقائيًا عبر العلاقة.</p></div></div>
