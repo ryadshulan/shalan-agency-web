@@ -1,0 +1,92 @@
+name: Test dashboard mini LIVE clock
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-dashboard-mini-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mini-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless browser
+        run: npm install --prefix /tmp/shulan-dashboard-qa puppeteer-core@24 --no-audit --no-fund
+      - name: Verify LIVE mini dashboard and responsive click-through
+        env:
+          NODE_PATH: /tmp/shulan-dashboard-qa/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs'),path=require('path');
+          const binary=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(x=>fs.existsSync(x));
+          if(!binary)throw Error('No headless Chrome installed');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:binary,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage();
+              const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('file://'+path.resolve('public/shulan-management.html'),{waitUntil:'domcontentloaded',timeout:60000});
+              await page.waitForFunction(()=>typeof tpUpdateDashboardLive==='function'&&typeof tpUpdateLiveClock==='function',{timeout:17000});
+              const data=await page.evaluate(()=>{
+                db={clients:[],jobs:[],cashMovements:[],reportNotes:{},timeGoals:[],timeLogs:[],timeEntries:[
+                  {id:'photo',title:'دراسة فوتوشوب',mode:'once',date:'2026-10-29',hour:8,duration:2,goalId:'',note:''},
+                  {id:'wednight',title:'مشروع نهاية الليل',mode:'once',date:'2026-10-28',hour:23,duration:2,goalId:'',note:''}
+                ]};
+                save=()=>{};
+                renderAll();
+                tpUpdateLiveClock(new Date(2026,9,29,8,25,0));
+                const get=(id)=>document.getElementById(id).textContent;
+                const work={
+                  time:get('dashLiveTime'),title:get('dashLiveTask'),
+                  state:get('dashLiveState'),meta:get('dashLiveMeta'),
+                  fullTime:get('tpLiveTime'),fullTask:get('tpLiveTask'),
+                  percentage:document.getElementById('dashLiveProgress').style.width,
+                  cardTop:document.getElementById('dashboardLiveCard').getBoundingClientRect().top,
+                  metricsTop:document.getElementById('dashboardMetrics').getBoundingClientRect().top
+                };
+                tpUpdateLiveClock(new Date(2026,9,29,11,10,0));
+                const free={
+                  task:get('dashLiveTask'),state:get('dashLiveState'),
+                  matching:get('dashLiveTask')===get('tpLiveTask'),
+                  meta:get('dashLiveMeta')
+                };
+                tpUpdateLiveClock(new Date(2026,9,29,0,30,0));
+                const afterMidnight={title:get('dashLiveTask'),day:get('dashLiveDay')};
+                tpUpdateLiveClock(new Date(2026,9,29,3,10,0));
+                const rest={title:get('dashLiveTask'),resting:document.getElementById('dashboardLiveCard').classList.contains('is-resting')};
+                document.getElementById('dashboardLiveCard').click();
+                const navigated=currentPage==='time'&&document.getElementById('page-time').classList.contains('active');
+                return {work,free,afterMidnight,rest,navigated,cardCount:document.querySelectorAll('#dashboardLiveCard').length};
+              });
+              const sizes=[];
+              for(const width of [320,390,768,1440]){
+                await page.setViewport({width,height:850,deviceScaleFactor:1});
+                await page.evaluate(()=>page('dashboard'));
+                sizes.push(await page.evaluate(()=>({
+                  viewport:innerWidth,documentWidth:document.documentElement.scrollWidth,
+                  cardWidth:Math.round(document.getElementById('dashboardLiveCard').getBoundingClientRect().width),
+                  cardVisible:getComputedStyle(document.getElementById('dashboardLiveCard')).display!=='none',
+                  timeVisible:document.getElementById('dashLiveTime').getBoundingClientRect().width>0,
+                  taskVisible:document.getElementById('dashLiveTask').getBoundingClientRect().width>0
+                })));
+              }
+              console.log('DASHBOARD MINI LIVE QA',JSON.stringify({data,sizes,errors}));
+              const ok=(v,msg)=>{if(!v)throw Error(msg)};
+              ok(!errors.length,'Browser errors: '+errors.join('; '));
+              ok(data.cardCount===1&&data.work.cardTop<data.work.metricsTop,'Card not top of dashboard');
+              ok(data.work.time==='08:25'&&data.work.title==='دراسة فوتوشوب'&&data.work.title===data.work.fullTask&&data.work.time===data.work.fullTime,'LIVE task not synchronized');
+              ok(data.work.percentage!=='0%'&&data.work.state.includes('المهمة'),'Active task or progress missing');
+              ok(data.free.task.includes('لا توجد')&&data.free.matching,'Empty time state mismatch');
+              ok(data.afterMidnight.title==='مشروع نهاية الليل'&&data.afterMidnight.day.includes('2026-10-28'),'Midnight attribution incorrect');
+              ok(data.rest.resting&&data.rest.title.includes('النوم'),'Sleep state incorrect');
+              ok(data.navigated,'LIVE button did not navigate');
+              ok(sizes.every(x=>x.cardVisible&&x.timeVisible&&x.taskVisible&&x.documentWidth<=x.viewport+3),'Overflow or hidden content on phone');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
