@@ -184,5 +184,6 @@ function invInitialize(){
   }
  });
  invClose();renderPurchases();
+ if(new URLSearchParams(location.search).get('view')==='purchases')page('purchases');
 }
 invInitialize();
