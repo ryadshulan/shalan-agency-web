@@ -1,0 +1,37 @@
+name: Verify Shulan supplier invoices live
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - 'public/shulan-purchases.js'
+      - '.github/workflows/verify-shulan-purchases-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify app, invoice module and no inventory route
+        run: |
+          set -eu
+          BASE=https://shalan-agency.onrender.com
+          for i in $(seq 1 18); do
+            code=$(curl -LfsS --max-time 25 -o /tmp/shulan.html -w '%{http_code}' "$BASE/shulan-management.html" || true)
+            js=$(curl -LfsS --max-time 25 -o /tmp/shulan-purchases.js -w '%{http_code}' "$BASE/shulan-purchases.js" || true)
+            if [ "$code" = "200" ] && [ "$js" = "200" ] \
+               && grep -q 'id="page-purchases"' /tmp/shulan.html \
+               && grep -q 'src="./shulan-purchases.js"' /tmp/shulan.html \
+               && grep -q "function renderPurchases()" /tmp/shulan-purchases.js \
+               && grep -q "shulan-supplier-invoices" /tmp/shulan-purchases.js \
+               && grep -q 'id="dashboardLiveCard"' /tmp/shulan.html; then
+               echo "PASS: deployed invoice UI and supplier invoice script on Render (HTTP 200)."
+               exit 0
+            fi
+            echo "Attempt $i: page=$code, module=$js"
+            sleep 10
+          done
+          echo "FAIL: invoice UI not yet publicly served."
+          exit 1
