@@ -1389,20 +1389,20 @@ function tpRenderGrid(){
  }
  let html='<thead><tr><th class="tp-hour">الساعة</th>'+days.map((date,i)=>'<th class="'+(date===tod?'tp-today':'')+'">'+tpDayNames[i]+'<small style="display:block;font-size:10px">'+date.slice(5)+'</small></th>').join('')+'</tr></thead><tbody>';
  for(const hour of tpVisibleHours){
-  html+='<tr><td class="tp-hour">'+tpFormatHour(hour)+(hour===24?'<small style="display:block;font-size:9px">(+1)</small>':'')+'</td>';
+  html+='<tr data-tp-row-hour="'+hour+'"><td class="tp-hour">'+tpFormatHour(hour)+(hour===24?'<small style="display:block;font-size:9px">(+1)</small>':'')+'</td>';
   for(let d=0;d<7;d++){
    const column=grid[d],date=days[d];
    const inst=column.starts.get(hour);
    if(inst){
     const e=inst.entry,done=!!inst.done;
-    html+='<td class="tp-filled" rowspan="'+e.duration+'"><div class="tp-event '+(done?'done':'')+'"><strong>'+safe(e.title)+'</strong>'
+    html+='<td class="tp-filled" rowspan="'+e.duration+'"><div class="tp-event '+(done?'done':'')+'" data-tp-entry-id="'+safe(e.id)+'" data-tp-entry-date="'+date+'"><strong>'+safe(e.title)+'</strong>'
      +'<small>'+tpFormatHour(e.hour)+' · '+e.duration+' س'+(e.goalId?' · مرتبط بهدف':'')+'</small>'
      +(e.note?'<small>'+safe(e.note)+'</small>':'')
      +'<div class="tp-event-actions"><button type="button" data-tp-action="toggle" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+(done?'✓ تم':'تم؟')+'</button>'
      +(done?'<button type="button" data-tp-action="hours" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+Number(inst.done.hours||0)+' س</button>':'')
      +'<button type="button" data-tp-action="edit" data-id="'+safe(e.id)+'">تعديل</button></div></div></td>';
    }else if(!column.covered.has(hour)){
-    html+='<td class="tp-empty '+(date===tod?'tp-today':'')+'" data-tp-add="'+date+'" data-hour="'+hour+'" title="اضغط لجدولة مهمة في هذا الوقت"></td>';
+    html+='<td class="tp-empty '+(date===tod?'tp-today':'')+'" data-tp-date="'+date+'" data-tp-add="'+date+'" data-hour="'+hour+'" title="اضغط لجدولة مهمة في هذا الوقت"></td>';
    }
   }
   html+='</tr>';
@@ -1424,6 +1424,7 @@ function tpRenderDayBars(){
  $('#tpKpis').innerHTML=kpis.map(k=>'<div class="tp-kpi"><small>'+k[0]+'</small><strong>'+k[1]+'</strong><em>'+k[2]+'</em></div>').join('');
 }
 function tpRenderEntries(){
+ $('#tpManagedCount').textContent=String(tpEntryList().length);
  const list=tpEntryList().slice().sort((a,b)=>a.hour-b.hour||a.title.localeCompare(b.title,'ar'));
  $('#tpEntryList').innerHTML=list.length?list.map(e=>{
   const g=tpGoalList().find(x=>x.id===e.goalId),schedule=e.mode==='once'?e.date:(e.days||[]).map(i=>tpDayNames[i]).join('، ');
@@ -1464,6 +1465,93 @@ function tpRenderYear(){
  $('#tpStrategy').innerHTML='<h3>الأهداف الاستراتيجية للسنة</h3><div class="tp-goals-list">'+(strategic.length?strategic.map(tpGoalMarkup).join(''):'<div class="tp-empty-msg">حدد الهدف السنوي الرئيسي، واربط به أهدافك الشهرية والأسبوعية.</div>')+'</div>';
 }
 
+
+// Current hour is based on the device's local clock. Midnight (00:00–00:59)
+// belongs to the previous planner day, whose final hour ends at 01:00.
+function tpLiveSnapshot(at=new Date()){
+ const wallDate=tpFmtDate(at),clockHour=at.getHours(),minute=at.getMinutes();
+ const date=clockHour===0?tpShiftDate(wallDate,-1):wallDate;
+ const hour=clockHour===0?24:clockHour;
+ const isSleep=clockHour>=1&&clockHour<7;
+ const preciseHour=hour+(minute+at.getSeconds()/60)/60;
+ const active=!isSleep?tpInstances(date,date).find(x=>
+  Number(x.entry.hour)>=7&&Number(x.entry.hour)<=24&&
+  Number(x.entry.hour)<=preciseHour&&
+  Number(x.entry.hour)+Number(x.entry.duration)>preciseHour
+ ):undefined;
+ return {date,hour,minute,clockHour,isSleep,active,at};
+}
+function tpHighlightLiveGrid(snapshot){
+ const grid=$('#tpWeekGrid');if(!grid)return;
+ grid.querySelectorAll('.tp-live-hour').forEach(x=>x.classList.remove('tp-live-hour'));
+ grid.querySelectorAll('.tp-current-event').forEach(x=>x.classList.remove('tp-current-event'));
+ grid.querySelectorAll('.tp-current-cell').forEach(x=>x.classList.remove('tp-current-cell'));
+ if(snapshot.isSleep||!tpWeekDates().includes(snapshot.date))return;
+ const row=grid.querySelector('tr[data-tp-row-hour="'+snapshot.hour+'"]');
+ if(!row)return;
+ row.classList.add('tp-live-hour');
+ if(snapshot.active){
+  grid.querySelectorAll('.tp-event[data-tp-entry-date="'+snapshot.date+'"]').forEach(el=>{
+   if(el.dataset.tpEntryId===snapshot.active.entry.id)el.classList.add('tp-current-event');
+  });
+ }else{
+  const cell=row.querySelector('td.tp-empty[data-tp-date="'+snapshot.date+'"]');
+  if(cell)cell.classList.add('tp-current-cell');
+ }
+}
+function tpUpdateLiveClock(at=new Date()){
+ const el=$('#tpLivePanel');if(!el)return;
+ const s=tpLiveSnapshot(at);
+ $('#tpLiveTime').textContent=String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0');
+ $('#tpLiveDay').textContent=tpDayNames[tpDayIndex(s.date)]+' · '+s.date;
+ const state=$('#tpLiveState'),task=$('#tpLiveTask'),meta=$('#tpLiveMeta'),bar=$('#tpLiveProgress');
+ if(s.isSleep){
+  state.textContent='خارج ساعات المخطط';
+  task.textContent='وقت الراحة والنوم';
+  meta.textContent='يبدأ يومك من 07:00 صباحًا';
+  bar.style.width='0%';
+ }else if(s.active){
+  const e=s.active.entry;
+  const goal=tpGoalList().find(g=>g.id===e.goalId);
+  const finished=!!s.active.done;
+  state.textContent=finished?'✓ مهمة مسجلة كمنجزة':'◉ المهمة المجدولة الآن';
+  task.textContent=e.title;
+  meta.textContent=tpFormatHour(e.hour)+' – '+tpFormatHour(Number(e.hour)+Number(e.duration))+
+   ' · '+e.duration+' ساعة'+(goal?' · '+goal.title:'');
+  const pct=Math.max(0,Math.min(100,(s.hour+s.minute/60-Number(e.hour))/Number(e.duration)*100));
+  bar.style.width=pct.toFixed(1)+'%';
+ }else{
+  state.textContent='الساعات الحالية';
+  task.textContent='لا توجد مهمة مجدولة الآن';
+  const upcoming=tpInstances(s.date,s.date)
+   .filter(x=>Number(x.entry.hour)>s.hour&&Number(x.entry.hour)<=24)
+   .sort((a,b)=>a.entry.hour-b.entry.hour)[0];
+  meta.textContent=upcoming?'القادمة '+tpFormatHour(upcoming.entry.hour)+' · '+upcoming.entry.title:'يمكنك جدولة مهمة أو مواصلة وقتك الحر';
+  bar.style.width=((s.minute/60)*100).toFixed(1)+'%';
+ }
+ tpHighlightLiveGrid(s);
+ return s;
+}
+let tpLastFocusDate=null,tpLiveTimer=null;
+function tpClockTick(){
+ const now=new Date();
+ const focusDate=tpLiveSnapshot(now).date;
+ // Follow the new day only if the user was viewing the previous current day.
+ if(tpLastFocusDate&&focusDate!==tpLastFocusDate&&tpAgendaDay===tpLastFocusDate){
+  tpAgendaDay=focusDate;tpWeekAnchor=tpStartOfWeek(focusDate);
+  renderTimePlanner();
+ }
+ tpLastFocusDate=focusDate;
+ tpUpdateLiveClock(now);
+}
+function tpStartLiveClock(){
+ if(tpLiveTimer!==null)return;
+ tpClockTick();
+ tpLiveTimer=setInterval(tpClockTick,20000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)tpClockTick();});
+ window.addEventListener('focus',tpClockTick);
+}
+
 function tpRenderDailyAgenda(){
  const today=tpTodayPlannerDate();
  if(!tpAgendaDay)tpAgendaDay=today;
@@ -1497,6 +1585,7 @@ function tpRenderDailyAgenda(){
  $('#tpWeeklyPanel').classList.toggle('tp-show-week',tpShowWeek);
  $('#tpToggleWeekly').textContent=tpShowWeek?'إخفاء الجدول الأسبوعي':'عرض الجدول الأسبوعي ▦';
  $('#tpToggleWeekly').setAttribute('aria-expanded',String(tpShowWeek));
+ tpUpdateLiveClock();
 }
 let tpInstallPrompt=null;
 function tpHomeScreenHelp(){
@@ -1607,7 +1696,7 @@ function tpInitialize(){
  });
  tpResetEntry();tpResetGoal();
 }
-tpInitialize();tpRegisterHomeScreen();
+tpInitialize();tpRegisterHomeScreen();tpStartLiveClock();
 // --- End time planner.
 
 $('#dashFrom').value=monthStart();$('#dashTo').value=localToday();$('#reportFrom').value=monthStart();$('#reportTo').value=localToday();save();renderAll();loadReportText();renderReport();
