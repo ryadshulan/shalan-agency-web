@@ -879,7 +879,7 @@ function save(){try{localStorage.setItem(storageKey,JSON.stringify(db));}catch(e
 function alertToast(s){let t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4400);}
 function setOptions(el,arr,placeholder,selected){if(!el)return;let old=selected??el.value;el.innerHTML=(placeholder?`<option value="all">${safe(placeholder)}</option>`:'')+arr.map(c=>`<option value="${safe(c.id)}">${safe(c.name)}</option>`).join('');if(Array.from(el.options).some(o=>o.value===old))el.value=old;else el.selectedIndex=0;}
 function refreshOptions(){setOptions($('#dashClient'),db.clients,'جميع العملاء');setOptions($('#jobsClient'),db.clients,'جميع العملاء');setOptions($('#reportClient'),db.clients,null);setOptions($('#cashClient'),db.clients,null);setOptions($('#cashFilterClient'),db.clients,'جميع العملاء');}
-function renderAll(){refreshOptions();renderDash();renderClients();renderJobs();renderTaskRail();renderCash();renderPurchases();renderTimePlanner();renderReport();$('#backupCount').textContent=`عدد العملاء: ${fmtNum(db.clients.length)} | عدد الأعمال المسجلة: ${fmtNum(db.jobs.length)}`;}
+function renderAll(){refreshOptions();renderDash();renderClients();renderJobs();renderTaskRail();renderCash();if(typeof renderPurchases==='function')renderPurchases();renderTimePlanner();renderReport();$('#backupCount').textContent=`عدد العملاء: ${fmtNum(db.clients.length)} | عدد الأعمال المسجلة: ${fmtNum(db.jobs.length)}`;}
 function page(p){currentPage=p;$$('.section').forEach(n=>n.classList.toggle('active',n.id==='page-'+p));$$('.nav button').forEach(n=>n.classList.toggle('active',n.dataset.page===p));let labels={dashboard:['لوحة التحكم','نظرة عامة على عملائك ونشاطك'],clients:['العملاء','علاقات مستمرة وسجل متكامل لكل عميل'],jobs:['سجل الأعمال','إدارة الخدمات والمهام والتكاليف'],advances:['مبالغ العملاء','دفعاتك نيابةً عن العملاء والتحصيلات والأرصدة'],purchases:['فواتير المشتريات','فواتير الموردين وأسعار المواد وقت الشراء'],time:['إدارة الوقت والأهداف','7 صباحًا ← 1 ليلًا · أهداف أسبوعية وشهرية وسنوية'],reports:['التقرير الرسمي','تقرير مُعبأ تلقائيًا على ورقتك الرسمية'],backup:['البيانات والنسخ','تصدير واستعادة بيانات أعمالك']};$('#pageTitle').textContent=labels[p][0];$('#pageDesc').textContent=labels[p][1];if(p==='reports')setTimeout(renderReport,0);}
 function filteredJobs(client,from,to){return db.jobs.filter(j=>(client==='all'||j.clientId===client)&&(!from||j.date>=from)&&(!to||j.date<=to));}
 function timeSort(a,b){return String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id));}
@@ -2061,5 +2061,6 @@ bootstrapCloud();
 // ---- End of cloud storage adapter -------------------------------------------------
 
 </script>
+<script src="/shulan-purchases.js"></script>
 </body>
 </html>
