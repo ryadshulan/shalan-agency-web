@@ -566,6 +566,44 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
 }
 @media(prefers-reduced-motion:reduce){#page-dashboard .dashboard-live-dot{animation:none}#page-dashboard .dashboard-live-card{transition:none}}
 </style>
+<style id="shulan-supplier-invoices">
+/* Compact supplier purchase invoices; no stock quantities or inventory side effects. */
+.inv-panel{margin-bottom:15px;min-width:0}.inv-heading{align-items:center}.inv-heading .btn{white-space:nowrap}
+.inv-form{border-top:1px solid #e9dfe0;padding-top:15px;margin-top:13px}.inv-form[hidden]{display:none!important}
+.inv-form-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px;color:#5b293b;font-size:16px}
+.inv-close{border:0;background:#f4e9ed;border-radius:8px;color:#6c3048;font-size:22px;width:34px;height:34px;cursor:pointer}
+.inv-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;min-width:0}.inv-fields>.field{min-width:0}
+.inv-fields .field input,.inv-fields .field select{min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+.inv-fields small{font-size:10px;color:#877981;display:block;margin-top:5px;line-height:1.6}
+.inv-items-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 9px}.inv-items-heading strong{color:#663047}
+.inv-items{display:flex;flex-direction:column;gap:7px}
+.inv-item{display:grid;grid-template-columns:minmax(160px,2fr) minmax(90px,1fr) minmax(65px,.6fr) minmax(95px,1fr) minmax(90px,1fr) 30px;gap:7px;align-items:end;border:1px solid #ede2e3;border-radius:10px;background:#fdfbfb;padding:8px;min-width:0}
+.inv-item label{display:block;color:#85767e;font-size:10px;margin:0 0 4px}
+.inv-item input,.inv-item select{width:100%;min-width:0;min-height:38px;border:1px solid #e5dadd;border-radius:8px;box-sizing:border-box;font-size:12px;padding:7px;background:white;color:#392e35}
+.inv-item .inv-unit-extra{margin-top:4px}.inv-item .inv-unit-extra[hidden]{display:none!important}
+.inv-item .inv-line-total{display:flex;align-items:center;min-height:38px;font-weight:800;white-space:nowrap;color:#723349;font-size:12px;direction:ltr;justify-content:flex-end}
+.inv-item .inv-remove-item{height:34px;width:30px;border:1px solid #e7d4d8;background:#fff4f5;color:#ad455b;border-radius:7px;cursor:pointer;font-size:17px}
+.inv-subfooter{display:flex;justify-content:flex-end;margin:11px 0 19px}.inv-subfooter>div{background:#f6edf0;padding:9px 15px;border-radius:10px;display:flex;align-items:center;gap:18px;color:#774656;font-size:12px}.inv-subfooter strong{font-size:23px;color:#612337;font-variant-numeric:tabular-nums}
+.inv-form-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.inv-form-actions #invSaveState{font-size:11px;color:#7e6b75}
+.inv-attachment-hint{font-size:11px;color:#78636c;margin-top:4px}
+.inv-filters{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:10px;margin:5px 0 16px}.inv-filters .field{min-width:0}.inv-filters input{width:100%;box-sizing:border-box;min-width:0}
+.inv-summary{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 14px}
+.inv-summary-pill{border-radius:8px;background:#f9f4f5;border:1px solid #ecdfe0;padding:8px 12px;display:flex;align-items:center;gap:12px;font-size:11px;color:#886e77}.inv-summary-pill strong{color:#612a3c;font-size:15px}
+.inv-list{display:flex;flex-direction:column;gap:9px}
+.inv-card{background:#fff;border:1px solid #e9dfe1;border-radius:12px;overflow:hidden}
+.inv-card-top{display:flex;align-items:center;gap:12px;padding:12px 13px;justify-content:space-between;flex-wrap:wrap}
+.inv-card-title{min-width:0;flex:1}.inv-card-title strong{display:block;color:#54283a;font-size:14px;line-height:1.5}.inv-card-title small{display:block;color:#8d7c82;font-size:11px;line-height:1.65}
+.inv-card-money{display:flex;flex-direction:column;gap:3px;text-align:left;white-space:nowrap}.inv-card-money strong{font-size:17px;color:#64273e}.inv-card-money small{font-size:10px;color:#91818a}
+.inv-card-actions{display:flex;gap:5px;flex-wrap:wrap}
+.inv-card-actions button{border:1px solid #e3d7da;background:#fbf9fa;border-radius:7px;padding:7px 9px;color:#704052;font-size:11px;cursor:pointer}.inv-card-actions button.danger{color:#a73b56;background:#fff7f7}
+.inv-card-details{border-top:1px solid #f0e6e6;background:#fdfafb;padding:12px}.inv-card-details[hidden]{display:none!important}
+.inv-card-details table{width:100%;border-collapse:collapse;font-size:11px}.inv-card-details th,.inv-card-details td{padding:9px 5px;text-align:right;border-bottom:1px solid #ebdfe2;overflow-wrap:anywhere}.inv-card-details th{color:#816c76;font-weight:700}.inv-card-details td{color:#4a3a42}.inv-card-details td:last-child{text-align:left;white-space:nowrap}
+.inv-card-details p{font-size:11px;color:#7b6874}.inv-file-link{border:1px solid #d8c2cb;border-radius:8px;padding:8px 12px;background:#faf0f3;color:#722f48;font-size:12px;cursor:pointer;margin-top:9px}
+.inv-empty{padding:24px;border:1px dashed #dfcdd3;border-radius:10px;color:#8d7d84;text-align:center;font-size:12px}
+@media(max-width:1024px){.inv-item{grid-template-columns:minmax(0,1.8fr) minmax(0,1fr) minmax(60px,.6fr) minmax(80px,1fr);}.inv-item .inv-line-total{grid-column:1/4;justify-content:flex-start;min-height:28px}.inv-item .inv-remove-item{grid-column:4;justify-self:end}}
+@media(max-width:750px){.inv-panel{padding:13px!important}.inv-heading{align-items:flex-start}.inv-heading .btn{font-size:11px;padding:9px}.inv-fields{gap:8px}.inv-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inv-filters .field:first-child{grid-column:1/-1}.inv-item{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:7px}.inv-item .inv-line-total{grid-column:1;justify-content:flex-start}.inv-item .inv-remove-item{grid-column:2;justify-self:end}.inv-card-top{gap:9px;padding:11px}.inv-card-actions{width:100%}.inv-card-actions button{flex:1}.inv-card-details{overflow-x:auto}.inv-card-details table{min-width:350px}.inv-fields input,.inv-fields select{font-size:13px}}
+@media(max-width:365px){.inv-fields{grid-template-columns:1fr}.inv-card-money strong{font-size:15px}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -590,6 +628,7 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
    <button type="button" data-page="clients"><span class="nav-icon">▣</span>العملاء</button>
    <button type="button" data-page="jobs"><span class="nav-icon">≡</span>سجل الأعمال</button>
    <button type="button" data-page="advances"><span class="nav-icon">◈</span>مبالغ العملاء</button>
+   <button type="button" data-page="purchases"><span class="nav-icon">▤</span>فواتير المشتريات</button>
    <button type="button" data-page="time"><span class="nav-icon">◷</span>الوقت والأهداف</button>
    <button type="button" data-page="reports"><span class="nav-icon">▤</span>التقرير الرسمي</button>
    <button type="button" data-page="backup"><span class="nav-icon">⚙</span>البيانات والنسخ</button>
@@ -707,6 +746,45 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
     <div class="tp-strategy" id="tpStrategy"></div>
    </div>
   </section>
+  <section class="section" id="page-purchases">
+   <div class="panel inv-panel">
+    <div class="panel-head inv-heading">
+     <div><h2>فواتير المشتريات</h2><p>احتفظ بسعر كل مادة وتاريخ شرائها وفاتورة المورد؛ دون إدارة مخزون.</p></div>
+     <button type="button" class="btn primary" id="invNew">＋ فاتورة جديدة</button>
+    </div>
+    <form id="invForm" class="inv-form" hidden>
+     <div class="inv-form-head"><strong id="invFormTitle">إضافة فاتورة شراء</strong><button type="button" id="invFormClose" class="inv-close" aria-label="إغلاق">×</button></div>
+     <div class="inv-fields">
+      <div class="field"><label for="invSupplier">المورد *</label><input id="invSupplier" list="invSupplierChoices" maxlength="120" placeholder="اسم المحل أو المورد" required autocomplete="off"><datalist id="invSupplierChoices"></datalist></div>
+      <div class="field"><label for="invDate">تاريخ الشراء *</label><input id="invDate" type="date" required></div>
+      <div class="field"><label for="invNumber">رقم الفاتورة (اختياري)</label><input id="invNumber" maxlength="75" placeholder="رقم الفاتورة"></div>
+      <div class="field"><label for="invCurrency">العملة</label><select id="invCurrency"><option value="ر.ي">ريال يمني</option><option value="ر.س">ريال سعودي</option><option value="$">دولار أمريكي</option></select></div>
+     </div>
+     <div class="inv-items-heading"><strong>مواد الفاتورة</strong><button type="button" class="btn small" id="invAddItem">＋ إضافة مادة</button></div>
+     <div id="invItems" class="inv-items"></div>
+     <div class="inv-subfooter"><div><span>إجمالي الفاتورة</span><strong id="invFormTotal" dir="ltr">0</strong></div></div>
+     <div class="inv-fields inv-optional">
+      <div class="field"><label for="invNote">ملاحظة (اختياري)</label><input id="invNote" maxlength="260" placeholder="مثلاً: شراء لمشروع لوحات أو تنفيذ ديكور"></div>
+      <div class="field"><label for="invFile">صورة أو PDF للفاتورة (اختياري)</label><input id="invFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"><small>حجم الملف حتى 10 ميجابايت، ويُحفظ بشكل خاص في حسابك.</small><div id="invExistingAttachment" class="inv-attachment-hint"></div></div>
+     </div>
+     <div class="inv-form-actions">
+      <button type="submit" class="btn primary" id="invSave">حفظ الفاتورة</button>
+      <button type="button" class="btn" id="invCancel">إلغاء</button>
+      <span id="invSaveState" role="status" aria-live="polite"></span>
+     </div>
+    </form>
+   </div>
+   <div class="panel inv-panel">
+    <div class="panel-head"><div><h2>سجل المشتريات والأسعار</h2><p>يمكنك البحث باسم المورد أو المادة، وفتح أي فاتورة لعرض تفاصيل أسعارها وقت الشراء.</p></div></div>
+    <div class="inv-filters">
+     <div class="field"><label for="invSearch">البحث</label><input id="invSearch" placeholder="مورد أو مادة أو رقم فاتورة" type="search"></div>
+     <div class="field"><label for="invFrom">من تاريخ</label><input id="invFrom" type="date"></div>
+     <div class="field"><label for="invTo">إلى تاريخ</label><input id="invTo" type="date"></div>
+    </div>
+    <div id="invSummary" class="inv-summary"></div>
+    <div id="invList" class="inv-list"></div>
+   </div>
+  </section>
   <section class="section" id="page-advances">
     <div class="panel cash-panel">
       <div class="panel-head"><div><h2>مبالغ دفعتها نيابة عن العملاء</h2><p>سجّل كل دفعة أو مبلغ مسترد، حتى عند تكرار الدفع للعمل نفسه.</p></div></div>
@@ -791,8 +869,8 @@ const two=n=>String(n).padStart(2,'0');
 function localToday(){const d=new Date();return `${d.getFullYear()}-${two(d.getMonth()+1)}-${two(d.getDate())}`;}
 function monthStart(){return localToday().slice(0,7)+'-01';}
 function uid(){return 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9)}
-function fresh(){return {clients:[{id:uid(),name:'النجم الحديث',phone:'',details:''}],jobs:[],reportNotes:{},cashMovements:[],timeEntries:[],timeGoals:[],timeLogs:[]};}
-function load(){try{let o=JSON.parse(localStorage.getItem(storageKey));if(o&&Array.isArray(o.clients)&&Array.isArray(o.jobs)){o.reportNotes??={};o.cashMovements??=[];o.timeEntries??=[];o.timeGoals??=[];o.timeLogs??=[];return o;}}catch(e){}return fresh();}
+function fresh(){return {clients:[{id:uid(),name:'النجم الحديث',phone:'',details:''}],jobs:[],reportNotes:{},cashMovements:[],timeEntries:[],timeGoals:[],timeLogs:[],supplierInvoices:[]};}
+function load(){try{let o=JSON.parse(localStorage.getItem(storageKey));if(o&&Array.isArray(o.clients)&&Array.isArray(o.jobs)){o.reportNotes??={};o.cashMovements??=[];o.timeEntries??=[];o.timeGoals??=[];o.timeLogs??=[];o.supplierInvoices??=[];return o;}}catch(e){}return fresh();}
 let db=load();let currentPage='dashboard',editing=null,modalType='',toastTimer=null, clientSelected='all';
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtNum=n=>new Intl.NumberFormat('ar',{maximumFractionDigits:1}).format(Number(n)||0);
@@ -801,8 +879,8 @@ function save(){try{localStorage.setItem(storageKey,JSON.stringify(db));}catch(e
 function alertToast(s){let t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4400);}
 function setOptions(el,arr,placeholder,selected){if(!el)return;let old=selected??el.value;el.innerHTML=(placeholder?`<option value="all">${safe(placeholder)}</option>`:'')+arr.map(c=>`<option value="${safe(c.id)}">${safe(c.name)}</option>`).join('');if(Array.from(el.options).some(o=>o.value===old))el.value=old;else el.selectedIndex=0;}
 function refreshOptions(){setOptions($('#dashClient'),db.clients,'جميع العملاء');setOptions($('#jobsClient'),db.clients,'جميع العملاء');setOptions($('#reportClient'),db.clients,null);setOptions($('#cashClient'),db.clients,null);setOptions($('#cashFilterClient'),db.clients,'جميع العملاء');}
-function renderAll(){refreshOptions();renderDash();renderClients();renderJobs();renderTaskRail();renderCash();renderTimePlanner();renderReport();$('#backupCount').textContent=`عدد العملاء: ${fmtNum(db.clients.length)} | عدد الأعمال المسجلة: ${fmtNum(db.jobs.length)}`;}
-function page(p){currentPage=p;$$('.section').forEach(n=>n.classList.toggle('active',n.id==='page-'+p));$$('.nav button').forEach(n=>n.classList.toggle('active',n.dataset.page===p));let labels={dashboard:['لوحة التحكم','نظرة عامة على عملائك ونشاطك'],clients:['العملاء','علاقات مستمرة وسجل متكامل لكل عميل'],jobs:['سجل الأعمال','إدارة الخدمات والمهام والتكاليف'],advances:['مبالغ العملاء','دفعاتك نيابةً عن العملاء والتحصيلات والأرصدة'],time:['إدارة الوقت والأهداف','7 صباحًا ← 1 ليلًا · أهداف أسبوعية وشهرية وسنوية'],reports:['التقرير الرسمي','تقرير مُعبأ تلقائيًا على ورقتك الرسمية'],backup:['البيانات والنسخ','تصدير واستعادة بيانات أعمالك']};$('#pageTitle').textContent=labels[p][0];$('#pageDesc').textContent=labels[p][1];if(p==='reports')setTimeout(renderReport,0);}
+function renderAll(){refreshOptions();renderDash();renderClients();renderJobs();renderTaskRail();renderCash();if(typeof renderPurchases==='function')renderPurchases();renderTimePlanner();renderReport();$('#backupCount').textContent=`عدد العملاء: ${fmtNum(db.clients.length)} | عدد الأعمال المسجلة: ${fmtNum(db.jobs.length)}`;}
+function page(p){currentPage=p;$$('.section').forEach(n=>n.classList.toggle('active',n.id==='page-'+p));$$('.nav button').forEach(n=>n.classList.toggle('active',n.dataset.page===p));let labels={dashboard:['لوحة التحكم','نظرة عامة على عملائك ونشاطك'],clients:['العملاء','علاقات مستمرة وسجل متكامل لكل عميل'],jobs:['سجل الأعمال','إدارة الخدمات والمهام والتكاليف'],advances:['مبالغ العملاء','دفعاتك نيابةً عن العملاء والتحصيلات والأرصدة'],purchases:['فواتير المشتريات','فواتير الموردين وأسعار المواد وقت الشراء'],time:['إدارة الوقت والأهداف','7 صباحًا ← 1 ليلًا · أهداف أسبوعية وشهرية وسنوية'],reports:['التقرير الرسمي','تقرير مُعبأ تلقائيًا على ورقتك الرسمية'],backup:['البيانات والنسخ','تصدير واستعادة بيانات أعمالك']};$('#pageTitle').textContent=labels[p][0];$('#pageDesc').textContent=labels[p][1];if(p==='reports')setTimeout(renderReport,0);}
 function filteredJobs(client,from,to){return db.jobs.filter(j=>(client==='all'||j.clientId===client)&&(!from||j.date>=from)&&(!to||j.date<=to));}
 function timeSort(a,b){return String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id));}
 function renderDash(){let jobs=filteredJobs($('#dashClient').value||'all',$('#dashFrom').value,$('#dashTo').value);let count={done:0,active:0,review:0,pending:0};jobs.forEach(j=>{count[j.status]=(count[j.status]||0)+1;});
@@ -1297,7 +1375,7 @@ $('#shareWhatsapp').onclick=async()=>{try{if(!reportHasContent()){alertToast('ل
  }catch(e){if(e.name!=='AbortError'){alertToast('تعذّر مشاركة التقرير: '+e.message);console.error(e);}}};
 function dataFilename(suffix){return 'شعلان_'+suffix+'_'+localToday();}
 $('#exportJson').onclick=()=>{let json=JSON.stringify({...db,exportedAt:new Date().toISOString()},null,2);downloadBlob(new Blob([json],{type:'application/json;charset=utf-8'}),dataFilename('نسخة_احتياطية')+'.json');alertToast('تم حفظ النسخة الاحتياطية.');};
-$('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع بيانات العملاء والأعمال والحركات المالية ببيانات النسخة المختارة. تأكد من وجود سجل المبالغ الحالي في النسخة. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{},cashMovements:Array.isArray(o.cashMovements)?o.cashMovements:[],timeEntries:Array.isArray(o.timeEntries)?o.timeEntries:[],timeGoals:Array.isArray(o.timeGoals)?o.timeGoals:[],timeLogs:Array.isArray(o.timeLogs)?o.timeLogs:[]};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
+$('#importJsonBtn').onclick=()=>$('#importJson').click();$('#importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let o=JSON.parse(await f.text());if(!Array.isArray(o.clients)||!Array.isArray(o.jobs)||o.clients.some(c=>!c.id||!c.name)||o.jobs.some(j=>!j.id||!j.clientId||!j.title))throw new Error('الملف ليس نسخة صالحة لهذا النظام');if(!confirm('سيتم استبدال جميع بيانات العملاء والأعمال والحركات المالية ببيانات النسخة المختارة. تأكد من وجود سجل المبالغ الحالي في النسخة. هل تؤكد؟'))return;db={clients:o.clients,jobs:o.jobs,reportNotes:o.reportNotes||{},cashMovements:Array.isArray(o.cashMovements)?o.cashMovements:[],timeEntries:Array.isArray(o.timeEntries)?o.timeEntries:[],timeGoals:Array.isArray(o.timeGoals)?o.timeGoals:[],timeLogs:Array.isArray(o.timeLogs)?o.timeLogs:[],supplierInvoices:Array.isArray(o.supplierInvoices)?o.supplierInvoices:[]};save();refreshOptions();renderAll();loadReportText();alertToast('تم استعادة البيانات من النسخة الاحتياطية.');}catch(err){alertToast('فشل الاستيراد: '+err.message);}finally{e.target.value='';}};
 $('#exportCsv').onclick=()=>{let cols=['اسم العميل','تاريخ','اسم العمل','المشروع','الخدمة','الحالة','موعد التسليم','وقت الإكمال','الوصف','العملة','السعر','التكلفة','المستلم'];let data=[cols,...db.jobs.map(j=>[db.clients.find(c=>c.id===j.clientId)?.name||'',j.date,j.title,j.project,j.category,statustext[j.status]||'',j.dueDate||'',j.completedAt||'',j.description,j.currency,j.price,j.cost,j.paid])];let csv='\ufeff'+data.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),dataFilename('الأعمال')+'.csv');alertToast('تم تصدير جميع الأعمال إلى CSV.');};
 
 // --- Shulan time planner: weekly recurring calendar, confirmed work, cascading goals.
@@ -1911,13 +1989,14 @@ async function openCloudWorkspace(){
  remote.timeEntries=Array.isArray(remote.timeEntries)?remote.timeEntries:[];
  remote.timeGoals=Array.isArray(remote.timeGoals)?remote.timeGoals:[];
  remote.timeLogs=Array.isArray(remote.timeLogs)?remote.timeLogs:[];
+ remote.supplierInvoices=Array.isArray(remote.supplierInvoices)?remote.supplierInvoices:[];
  const pendingCopy=localStorage.getItem(unsyncedKey());
  db=remote;
  if(pendingCopy){
   try{
    const pending=JSON.parse(pendingCopy);
    if(cloudValidPayload(pending) && confirm('عُثر على تعديلات محلية لم يكتمل حفظها سابقًا. هل تريد استعادتها وإرسالها إلى السحابة؟ (اختيار إلغاء سيترك النسخة السحابية كما هي.)')){
-    db=pending;db.cashMovements=Array.isArray(db.cashMovements)?db.cashMovements:[];db.timeEntries=Array.isArray(db.timeEntries)?db.timeEntries:[];db.timeGoals=Array.isArray(db.timeGoals)?db.timeGoals:[];db.timeLogs=Array.isArray(db.timeLogs)?db.timeLogs:[];cloudPending=db;
+    db=pending;db.cashMovements=Array.isArray(db.cashMovements)?db.cashMovements:[];db.timeEntries=Array.isArray(db.timeEntries)?db.timeEntries:[];db.timeGoals=Array.isArray(db.timeGoals)?db.timeGoals:[];db.timeLogs=Array.isArray(db.timeLogs)?db.timeLogs:[];db.supplierInvoices=Array.isArray(db.supplierInvoices)?db.supplierInvoices:[];cloudPending=db;
    }
   }catch(e){console.warn('Invalid unsynced recovery copy',e)}
  }
@@ -1961,10 +2040,10 @@ $('#cloudImportLocal').onclick=async()=>{
  if(!cloudValidPayload(oldLocalData)){alertToast('لم أجد بيانات محلية صالحة من الإصدار القديم. يمكنك استيراد نسخة JSON.');return;}
  const {data:remote,error}=await cloudApi.from('shulan_workspaces').select('payload').eq('user_id',cloudCurrentUserId).maybeSingle();
  if(error){alertToast(error.message);return;}
- if(remote?.payload?.jobs?.length||remote?.payload?.clients?.length||remote?.payload?.cashMovements?.length||remote?.payload?.timeEntries?.length||remote?.payload?.timeGoals?.length||remote?.payload?.timeLogs?.length){alertToast('القاعدة السحابية تحتوي بيانات. لن يتم استبدالها تلقائيًا. استخدم النسخة الاحتياطية للتعامل معها بأمان.');return;}
+ if(remote?.payload?.jobs?.length||remote?.payload?.clients?.length||remote?.payload?.cashMovements?.length||remote?.payload?.timeEntries?.length||remote?.payload?.timeGoals?.length||remote?.payload?.timeLogs?.length||remote?.payload?.supplierInvoices?.length){alertToast('القاعدة السحابية تحتوي بيانات. لن يتم استبدالها تلقائيًا. استخدم النسخة الاحتياطية للتعامل معها بأمان.');return;}
  const clients=oldLocalData.clients.length,jobs=oldLocalData.jobs.length;
  if(!confirm(`هل تريد نقل ${clients} عميل و${jobs} عمل من الإصدار المحلي القديم إلى حسابك السحابي؟ احتفظ بنسخة JSON أصلية أولًا.`))return;
- db=JSON.parse(JSON.stringify({clients:oldLocalData.clients,jobs:oldLocalData.jobs,reportNotes:oldLocalData.reportNotes||{},cashMovements:Array.isArray(oldLocalData.cashMovements)?oldLocalData.cashMovements:[],timeEntries:Array.isArray(oldLocalData.timeEntries)?oldLocalData.timeEntries:[],timeGoals:Array.isArray(oldLocalData.timeGoals)?oldLocalData.timeGoals:[],timeLogs:Array.isArray(oldLocalData.timeLogs)?oldLocalData.timeLogs:[]}));
+ db=JSON.parse(JSON.stringify({clients:oldLocalData.clients,jobs:oldLocalData.jobs,reportNotes:oldLocalData.reportNotes||{},cashMovements:Array.isArray(oldLocalData.cashMovements)?oldLocalData.cashMovements:[],timeEntries:Array.isArray(oldLocalData.timeEntries)?oldLocalData.timeEntries:[],timeGoals:Array.isArray(oldLocalData.timeGoals)?oldLocalData.timeGoals:[],timeLogs:Array.isArray(oldLocalData.timeLogs)?oldLocalData.timeLogs:[],supplierInvoices:Array.isArray(oldLocalData.supplierInvoices)?oldLocalData.supplierInvoices:[]}));
  save();renderAll();loadReportText();alertToast('بدأ نقل البيانات إلى السحابة. انتظر رسالة تأكيد الحفظ.');
 };
 async function bootstrapCloud(){
@@ -1982,5 +2061,6 @@ bootstrapCloud();
 // ---- End of cloud storage adapter -------------------------------------------------
 
 </script>
+<script src="./shulan-purchases.js"></script>
 </body>
 </html>
