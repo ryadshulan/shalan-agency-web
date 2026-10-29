@@ -109,7 +109,7 @@ jobs:
               yes(info.rows===18&&info.firstHour.startsWith('07:00')&&info.lastHour.includes('00:00'),'Awake-hour grid');
               yes(info.endSpan===2&&info.weekHas7Cols&&info.noEarlyOption&&info.midnightLastHour&&info.crossMidnightOptions,'Overnight scheduling');
               yes(info.hasPhoto&&info.hasOvernight&&info.oldPreserved&&info.selectedSunday&&info.afterIllustrator,'Daily agenda');
-              yes(info.expanded&&info.mobileAgendaDisplay!=='none'&&info.bodyWidth<=info.screenWidth+3,'Mobile layout');
+              yes(info.mobileAgendaDisplay==='none'&&info.bodyWidth<=info.screenWidth+3,'Compact mobile layout should hide Daily Focus');
             }finally{await browser.close();}
           })().catch(e=>{console.error(e);process.exit(1);});
           NODE
