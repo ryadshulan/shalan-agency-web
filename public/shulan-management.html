@@ -522,6 +522,50 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
 }
 </style>
 <style id="shulan-goal-month-overflow">#page-time .tp-month-extra{margin-top:7px;border-top:1px solid #e8dfe0;padding:7px 3px 2px}#page-time .tp-month-extra summary{font-size:10px;color:#7b3d51;cursor:pointer}#page-time .tp-month-extra[open] summary{margin-bottom:6px}</style>
+<style id="shulan-dashboard-live-mini">
+
+/* Mini LIVE status on the home dashboard — synced to the main time clock. */
+#page-dashboard .dashboard-live-card{
+ appearance:none;display:grid;grid-template-columns:126px minmax(0,1fr) 23px;
+ align-items:center;gap:16px;width:100%;margin:0 0 16px;padding:13px 17px;
+ border-radius:15px;border:1px solid #763b53;text-align:right;cursor:pointer;
+ color:#fff;background:linear-gradient(115deg,#502036 0%,#6d2a45 61%,#854458 100%);
+ box-shadow:0 8px 23px rgba(75,26,47,.14);transition:box-shadow .18s ease,transform .18s ease;
+ font-family:inherit;min-height:100px;overflow:hidden;
+}
+#page-dashboard .dashboard-live-card:hover{box-shadow:0 10px 27px rgba(75,26,47,.24);transform:translateY(-1px)}
+#page-dashboard .dashboard-live-card:focus-visible{outline:3px solid #d9b084;outline-offset:3px}
+#page-dashboard .dashboard-live-clock{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-width:0;border-left:1px solid #ffffff40;padding-left:13px}
+#page-dashboard .dashboard-live-kicker{color:#f6dce6;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:10px;font-weight:800;letter-spacing:.6px}
+#page-dashboard .dashboard-live-dot{width:7px;height:7px;display:inline-block;flex-shrink:0;border-radius:50%;background:#80f3b2;box-shadow:0 0 0 3px #80f3b22b,0 0 12px #80f3b288;animation:dash-live-pulse 2.2s ease-in-out infinite}
+@keyframes dash-live-pulse{0%,100%{box-shadow:0 0 0 2px #80f3b21a,0 0 7px #80f3b266}50%{box-shadow:0 0 0 5px #80f3b220,0 0 14px #80f3b299}}
+#page-dashboard .dashboard-live-time{font-size:31px;line-height:1.28;letter-spacing:-.7px;font-weight:850;font-variant-numeric:tabular-nums;color:white;white-space:nowrap}
+#page-dashboard .dashboard-live-day{color:#ead5df;font-size:10px;white-space:nowrap}
+#page-dashboard .dashboard-live-body{min-width:0;display:flex;flex-direction:column;gap:4px}
+#page-dashboard .dashboard-live-state{font-size:11px;color:#eacdd8;font-weight:700}
+#page-dashboard .dashboard-live-task{font-size:17px;line-height:1.4;color:#fff;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:800}
+#page-dashboard .dashboard-live-meta{font-size:10px;color:#f1dfe6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#page-dashboard .dashboard-live-progress{display:block;height:4px;border-radius:7px;background:#ffffff38;overflow:hidden;margin-top:3px;max-width:100%}
+#page-dashboard .dashboard-live-progress>span{display:block;background:#90f0b6;height:100%;border-radius:7px;transition:width .3s}
+#page-dashboard .dashboard-live-open{opacity:.75;font-size:23px;font-weight:600}
+#page-dashboard .dashboard-live-card.is-resting .dashboard-live-dot{background:#c4b7c0;animation:none;box-shadow:none}
+@media(max-width:750px){
+ #page-dashboard .dashboard-live-card{grid-template-columns:89px minmax(0,1fr) 12px;gap:10px;padding:12px;border-radius:13px;min-height:88px;margin-bottom:12px}
+ #page-dashboard .dashboard-live-clock{padding-left:9px}
+ #page-dashboard .dashboard-live-time{font-size:25px}
+ #page-dashboard .dashboard-live-kicker{font-size:9px;gap:5px}
+ #page-dashboard .dashboard-live-day{font-size:9px}
+ #page-dashboard .dashboard-live-state{font-size:9px}
+ #page-dashboard .dashboard-live-task{font-size:13px}
+ #page-dashboard .dashboard-live-meta{font-size:9px}
+ #page-dashboard .dashboard-live-open{font-size:15px}
+}
+@media(max-width:350px){
+ #page-dashboard .dashboard-live-card{grid-template-columns:80px minmax(0,1fr) 8px;gap:7px;padding:10px}
+ #page-dashboard .dashboard-live-time{font-size:23px}
+}
+@media(prefers-reduced-motion:reduce){#page-dashboard .dashboard-live-dot{animation:none}#page-dashboard .dashboard-live-card{transition:none}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -555,6 +599,20 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
  <main class="main">
   <div class="topbar"><div><h1 id="pageTitle">لوحة التحكم</h1><p id="pageDesc">ملخص جميع أعمالك وعملائك في مكان واحد</p></div><div class="actions"><button class="btn soft" id="jumpReport">◫ عرض التقرير</button><button class="btn primary" id="addJobTop">＋ إضافة عمل</button></div></div>
   <section class="section active" id="page-dashboard">
+   <button type="button" id="dashboardLiveCard" data-page="time" class="dashboard-live-card" aria-label="فتح إدارة الوقت والاطلاع على المهمة الحالية">
+    <span class="dashboard-live-clock">
+     <span class="dashboard-live-kicker"><span class="dashboard-live-dot" aria-hidden="true"></span> الآن · LIVE</span>
+     <strong id="dashLiveTime" class="dashboard-live-time" dir="ltr">--:--</strong>
+     <span id="dashLiveDay" class="dashboard-live-day">الوقت الحالي</span>
+    </span>
+    <span class="dashboard-live-body">
+     <span id="dashLiveState" class="dashboard-live-state">جارٍ تحديد المهمة الحالية</span>
+     <strong id="dashLiveTask" class="dashboard-live-task">جارٍ تحديث الجدول…</strong>
+     <span id="dashLiveMeta" class="dashboard-live-meta">من المخطط الأسبوعي</span>
+     <span class="dashboard-live-progress"><span id="dashLiveProgress"></span></span>
+    </span>
+    <span class="dashboard-live-open" aria-hidden="true">‹</span>
+   </button>
    <div class="filterbar"><div class="field" style="max-width:300px"><label for="dashClient">عرض بيانات</label><select id="dashClient"></select></div><div class="field" style="max-width:165px"><label for="dashFrom">من تاريخ</label><input type="date" id="dashFrom"></div><div class="field" style="max-width:165px"><label for="dashTo">إلى تاريخ</label><input type="date" id="dashTo"></div></div>
    <div class="grid4" id="dashboardMetrics"></div>
    <div class="two-col"><div class="panel"><div class="panel-head"><div><h2>آخر الأعمال</h2><p>الأحدث ضمن الفلاتر المحددة</p></div><button class="btn small" data-page="jobs">كل الأعمال ←</button></div><div id="dashboardJobs"></div></div><div class="panel"><div class="panel-head"><div><h2>الخدمات الأكثر طلبًا</h2><p>توزيع الأعمال حسب الخدمة</p></div></div><div id="dashboardBars"></div></div></div><div class="panel" style="margin-top:17px"><div class="panel-head"><div><h2>الملخص المالي الداخلي</h2><p>قيم الأعمال، المقبوضات، المستحقات، والربح التقديري لكل عملة. هذا القسم لا يظهر للعميل.</p></div></div><div id="dashboardFinance"></div></div>
@@ -1606,7 +1664,21 @@ function tpUpdateLiveClock(at=new Date()){
   bar.style.width=((s.minute/60)*100).toFixed(1)+'%';
  }
  tpHighlightLiveGrid(s);
+ tpUpdateDashboardLive(s);
  return s;
+}
+// Same state and schedule as the full LIVE panel; no second timer or duplicated task logic.
+function tpUpdateDashboardLive(snapshot){
+ const card=$('#dashboardLiveCard');if(!card)return;
+ const source=['Time','Day','State','Task','Meta'];
+ source.forEach(part=>{
+  const full=$('#tpLive'+part),compact=$('#dashLive'+part);
+  if(full&&compact)compact.textContent=full.textContent;
+ });
+ $('#dashLiveProgress').style.width=$('#tpLiveProgress').style.width;
+ card.classList.toggle('is-resting',snapshot.isSleep);
+ card.classList.toggle('is-working',!!snapshot.active);
+ card.title='فتح مخطط إدارة الوقت والأهداف';
 }
 let tpLastFocusDate=null,tpLiveTimer=null;
 function tpClockTick(){
