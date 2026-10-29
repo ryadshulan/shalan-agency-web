@@ -93,7 +93,7 @@ jobs:
               assert(result.rollup.operational===1.5&&result.rollup.tactical===4.5&&result.rollup.strategic===4.5,'Cascading goal progress');
               assert(result.cards===12&&result.octoberGoal&&result.repeatInstances===2,'Year/month/repeats');
               assert(result.preservedJobs===1&&result.cloudArrayPreserved&&result.saves>=7,'Saved state');
-              assert(mobile.screen===390&&mobile.body<=393&&mobile.gridOverflow&&mobile.monthCards===12,'Mobile overflow');
+              assert(mobile.screen===390&&mobile.body<=393&&!mobile.gridOverflow&&mobile.monthCards===12&&mobile.tableWidth<=mobile.gridClientWidth+2,'Mobile grid should fit entirely without inner scroll');
             }finally{await browser.close();}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
