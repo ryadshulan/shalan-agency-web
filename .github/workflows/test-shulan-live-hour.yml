@@ -1,0 +1,89 @@
+name: QA Shulan live-hour focus and compact schedule
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-live-hour.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-focus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser runtime
+        run: npm install --prefix /tmp/shulan-live-qa puppeteer-core@24 --no-audit --no-fund
+      - name: Verify live time, task handoffs, midnight and hidden list on mobile
+        env:
+          NODE_PATH: /tmp/shulan-live-qa/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core'),fs=require('fs'),path=require('path');
+          const executablePath=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(fs.existsSync);
+          if(!executablePath)throw Error('Chrome unavailable');
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+            try{
+              const page=await browser.newPage();
+              await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('file://'+path.resolve('public/shulan-management.html')+'?view=time',{waitUntil:'domcontentloaded',timeout:60000});
+              await page.waitForFunction(()=>typeof tpUpdateLiveClock==='function'&&typeof tpLiveSnapshot==='function',{timeout:15000});
+              const result=await page.evaluate(()=>{
+                let saves=0;save=()=>saves++;
+                db={clients:[],jobs:[],cashMovements:[],reportNotes:{},timeGoals:[],timeLogs:[],timeEntries:[
+                  {id:'photo',title:'تعلم فوتوشوب',mode:'weekly',days:[0],hour:8,duration:2,startDate:'2026-10-24',endDate:'2026-10-31',goalId:''},
+                  {id:'illust',title:'تعلم إليستريتور',mode:'weekly',days:[0],hour:10,duration:2,startDate:'2026-10-24',endDate:'2026-10-31',goalId:''},
+                  {id:'late',title:'جلسة ليلية',mode:'weekly',days:[0],hour:23,duration:2,startDate:'2026-10-24',endDate:'2026-10-31',goalId:''}
+                ]};
+                tpAgendaDay='2026-10-24';tpWeekAnchor='2026-10-24';tpShowWeek=true;renderTimePlanner();
+                const sample=(d)=>{
+                  const snap=tpUpdateLiveClock(d);
+                  return {text:document.querySelector('#tpLiveTask').textContent,
+                    clock:document.querySelector('#tpLiveTime').textContent,
+                    label:document.querySelector('#tpLiveState').textContent,
+                    date:snap.date,hour:snap.hour,sleep:snap.isSleep,
+                    liveRow:document.querySelector('#tpWeekGrid .tp-live-hour')?.dataset.tpRowHour||'',
+                    marked:document.querySelector('#tpWeekGrid .tp-current-event')?.dataset.tpEntryId||'',
+                    percentage:parseFloat(document.querySelector('#tpLiveProgress').style.width)}
+                };
+                const photo=sample(new Date(2026,9,24,8,30,0));
+                const other=sample(new Date(2026,9,24,10,5,0));
+                const night=sample(new Date(2026,9,24,23,30,0));
+                const midnight=sample(new Date(2026,9,25,0,30,0));
+                const sleeping=sample(new Date(2026,9,25,2,15,0));
+                const drawer=document.querySelector('#tpManageEntries');
+                const hiddenInitially=!drawer.open;
+                const count=document.querySelector('#tpManagedCount').textContent;
+                const totalRows=document.querySelectorAll('#tpWeekGrid tbody tr').length;
+                drawer.open=true;
+                const visibleAfterOpen=getComputedStyle(drawer.querySelector('#tpEntryList')).display!=='none';
+                drawer.open=false;
+                const hiddenAgain=!drawer.open;
+                db.timeEntries.push({id:'new',title:'جلسة إضافية',mode:'once',date:'2026-10-26',hour:12,duration:1,goalId:''});
+                renderTimePlanner();
+                const updatedCount=document.querySelector('#tpManagedCount').textContent;
+                const mobile={screen:innerWidth,body:document.documentElement.scrollWidth,
+                  liveCard:getComputedStyle(document.querySelector('#tpLivePanel')).display,
+                  collapsed:!document.querySelector('#tpManageEntries').open,
+                  isStandalone:document.body.classList.contains('tp-standalone')};
+                return {photo,other,night,midnight,sleeping,hiddenInitially,visibleAfterOpen,hiddenAgain,
+                  count,updatedCount,totalRows,mobile,saves};
+              });
+              console.log('LIVE FOCUS QA',JSON.stringify(result));
+              if(errors.length)throw Error('Browser errors: '+errors.join('; '));
+              const check=(ok,msg)=>{if(!ok)throw Error(msg)};
+              check(result.photo.text==='تعلم فوتوشوب'&&result.photo.clock==='08:30'&&result.photo.liveRow==='8'&&result.photo.marked==='photo','08:30 focus indicator');
+              check(Math.abs(result.photo.percentage-25)<1,'08:30 task progress');
+              check(result.other.text==='تعلم إليستريتور'&&result.other.liveRow==='10'&&result.other.marked==='illust','Hourly handoff');
+              check(result.night.text==='جلسة ليلية'&&result.night.liveRow==='23','23:30 late task');
+              check(result.midnight.date==='2026-10-24'&&result.midnight.hour===24&&result.midnight.liveRow==='24'&&result.midnight.marked==='late','00:30 previous-day task');
+              check(result.sleeping.sleep&&result.sleeping.text==='وقت الراحة والنوم'&&!result.sleeping.liveRow,'Sleep hours');
+              check(result.hiddenInitially&&result.visibleAfterOpen&&result.hiddenAgain&&result.count==='3'&&result.updatedCount==='4','Collapsible task list');
+              check(result.totalRows===18&&result.mobile.body<=result.mobile.screen+3&&result.mobile.collapsed&&result.mobile.isStandalone,'Mobile layout');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE

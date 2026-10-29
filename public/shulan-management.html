@@ -409,6 +409,50 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
 }
 @media(max-width:360px){.tp-day-pill small{font-size:8px}.tp-agenda-clock{flex-basis:49px}}
 </style>
+<style id="shulan-time-live-focus">
+/* Live hourly focus + compact scheduled items drawer */
+.tp-live-panel{position:relative;background:linear-gradient(118deg,#542039 0%,#742e49 62%,#88435a 100%);color:#fff;border-radius:17px;padding:18px 20px;margin:0 0 14px;display:grid;grid-template-columns:160px minmax(0,1fr);gap:20px;align-items:center;overflow:hidden;box-shadow:0 9px 27px #51203721;min-width:0}
+.tp-live-panel:before{content:"";position:absolute;width:160px;height:160px;border:1px solid #ffffff19;border-radius:50%;left:-60px;top:-80px;pointer-events:none}
+.tp-live-clock{border-left:1px solid #ffffff33;padding-left:17px;min-width:0}
+.tp-live-label{display:flex;gap:7px;align-items:center;letter-spacing:.8px;color:#efdae0;font-size:11px;font-weight:800}
+.tp-live-dot{position:relative;display:inline-block;width:7px;height:7px;border-radius:50%;background:#80f3b2;box-shadow:0 0 0 3px #80f3b21f,0 0 10px #80f3b288;flex-shrink:0}
+.tp-live-dot:after{content:"";position:absolute;inset:-4px;border:1px solid #80f3b264;border-radius:50%;animation:tp-live-pulse 2s ease-in-out infinite}
+@keyframes tp-live-pulse{0%,100%{transform:scale(.8);opacity:.6}50%{transform:scale(1.35);opacity:.12}}
+.tp-live-time{font-family:Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums;font-size:38px;line-height:1.3;font-weight:800;letter-spacing:-1.2px;color:#fff;margin-top:4px;text-align:right}
+.tp-live-day{font-size:10px;color:#ead6de}
+.tp-live-information{min-width:0;display:flex;flex-direction:column;gap:7px}
+.tp-live-information small{font-size:11px;color:#e6cbd5;font-weight:650}
+.tp-live-information strong{font-size:19px;line-height:1.45;overflow-wrap:anywhere;color:white}
+.tp-live-meta{font-size:11px;color:#f1dae1;line-height:1.6}
+.tp-live-progress{height:4px;border-radius:9px;background:#ffffff33;overflow:hidden;width:100%;margin-top:5px}
+.tp-live-progress span{display:block;background:#93efba;height:100%;border-radius:9px;transition:width .3s ease}
+.tp-table tr.tp-live-hour>.tp-hour{background:#79334c!important;color:white!important;font-weight:900;position:sticky;right:0}
+.tp-table tr.tp-live-hour>.tp-hour:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#84efb0;margin-left:6px;box-shadow:0 0 0 3px #70e8a22e;vertical-align:middle}
+.tp-table .tp-current-event{outline:2px solid #59ba88;outline-offset:-2px;box-shadow:inset 0 0 0 1px #b1dfc5}
+.tp-table td.tp-current-cell{background:#f1f9f3}
+.tp-manage-entries{margin-top:15px;border:1px solid #e9dcde;border-radius:11px;background:#fcf9f9}
+.tp-manage-entries summary{list-style:none;cursor:pointer;min-height:45px;display:flex;gap:8px;align-items:center;padding:10px 12px;color:#6c3548;font-size:12px;font-weight:800}
+.tp-manage-entries summary::-webkit-details-marker{display:none}
+.tp-manage-entries summary:after{content:"⌄";font-size:16px;margin-right:auto;transition:transform .2s}
+.tp-manage-entries[open] summary:after{transform:rotate(180deg)}
+.tp-manage-icon{font-size:16px;color:#a97184}
+#tpManagedCount{border-radius:99px;background:#eee0e5;padding:3px 8px;font-size:11px;color:#672b3e}
+.tp-manage-entries summary small{font-size:10px;color:#ae929d;font-weight:400;white-space:nowrap}
+.tp-manage-entries .tp-entry-list{margin:0;padding:8px 10px 12px;max-height:390px;overflow-y:auto;border-top:1px solid #e9dfe1}
+@media(max-width:750px){
+ .tp-live-panel{grid-template-columns:110px minmax(0,1fr);padding:14px 13px;gap:12px;border-radius:15px;margin-bottom:12px}
+ .tp-live-clock{padding-left:10px}
+ .tp-live-time{font-size:29px;letter-spacing:-.6px}
+ .tp-live-information strong{font-size:15px}
+ .tp-live-label{font-size:9px}
+ .tp-live-information small{font-size:9px}
+ .tp-live-meta{font-size:10px}
+ .tp-manage-entries summary{flex-wrap:wrap}
+ .tp-manage-entries summary small{display:none}
+}
+@media(max-width:360px){.tp-live-panel{grid-template-columns:90px minmax(0,1fr);gap:9px;padding:13px 10px}.tp-live-time{font-size:24px}.tp-live-information strong{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.tp-live-dot:after{animation:none}.tp-live-progress span{transition:none}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -456,7 +500,20 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
     <div class="tp-hero-actions"><button type="button" id="tpJumpEntry" class="btn primary">＋ جدولة مهمة</button><button type="button" id="tpJumpGoal" class="btn soft">◎ إضافة هدف</button><button type="button" id="tpInstallButton" class="btn">⌂ إضافة للشاشة الرئيسية</button></div>
    </div>
    <div class="tp-mobile-app-top"><div class="tp-app-avatar">ش</div><div><strong>وقتي وأهدافي</strong><small>لوحة يومية سريعة · شعلان</small></div><button type="button" id="tpInstallAppTop" class="tp-app-install">تثبيت ⊕</button><a href="/shulan-management.html">النظام الكامل ↗</a></div>
-   <div class="tp-daily-panel panel">
+   <div class="tp-live-panel" id="tpLivePanel" role="status" aria-live="off" aria-label="الساعة والمهمة الحالية">
+    <div class="tp-live-clock">
+      <div class="tp-live-label"><span class="tp-live-dot" aria-hidden="true"></span> الآن · LIVE</div>
+      <div id="tpLiveTime" class="tp-live-time" dir="ltr">--:--</div>
+      <div id="tpLiveDay" class="tp-live-day">الوقت الحالي</div>
+    </div>
+    <div class="tp-live-information">
+      <small id="tpLiveState">المهمة المجدولة في هذه الساعة</small>
+      <strong id="tpLiveTask">جارٍ تحديد موعدك…</strong>
+      <div id="tpLiveMeta" class="tp-live-meta">يعتمد على توقيت جهازك</div>
+      <div class="tp-live-progress"><span id="tpLiveProgress" style="width:0%"></span></div>
+    </div>
+  </div>
+  <div class="tp-daily-panel panel">
     <div class="tp-daily-heading"><div><span class="tp-eyebrow">DAILY FOCUS</span><h2 id="tpDailyTitle">جدول اليوم</h2><p id="tpDailyMeta"></p></div><button id="tpDailyAdd" class="tp-daily-plus" type="button" aria-label="إضافة مهمة">＋</button></div>
     <div class="tp-day-strip" id="tpDayStrip"></div>
     <div class="tp-daily-progress"><div class="tp-progress-label"><span>إنجاز اليوم</span><strong id="tpDailyProgressText">0 / 0 ساعات</strong></div><div class="tp-progress-track"><span id="tpDailyProgressBar"></span></div></div>
@@ -491,7 +548,10 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
       <div class="field tp-wide"><label for="tpTaskNote">ملاحظة (اختياري)</label><input type="text" id="tpTaskNote" maxlength="200" placeholder="مثلاً: تنفيذ تمارين Adobe وإعداد ملف تدريب"></div>
       <div class="tp-actions tp-wide"><button class="btn primary" type="submit" id="tpSaveEntry">حفظ المهمة</button><button type="button" id="tpCancelEntry" class="btn" hidden>إلغاء التعديل</button></div>
      </form>
-     <div id="tpEntryList" class="tp-entry-list"></div>
+     <details id="tpManageEntries" class="tp-manage-entries">
+      <summary><span class="tp-manage-icon">▤</span> إدارة المهام المجدولة <span id="tpManagedCount">0</span><small>مخفية لتبقى الشاشة مرتبة</small></summary>
+      <div id="tpEntryList" class="tp-entry-list"></div>
+     </details>
     </div>
     <div class="panel" id="tpGoalPanel">
      <div class="panel-head"><div><h2 id="tpGoalHeading">الأهداف المترابطة</h2><p>تشغيلي أسبوعي ← تكتيكي شهري ← استراتيجي سنوي. الساعات المنجزة تصعد تلقائيًا عبر العلاقة.</p></div></div>
@@ -1329,20 +1389,20 @@ function tpRenderGrid(){
  }
  let html='<thead><tr><th class="tp-hour">الساعة</th>'+days.map((date,i)=>'<th class="'+(date===tod?'tp-today':'')+'">'+tpDayNames[i]+'<small style="display:block;font-size:10px">'+date.slice(5)+'</small></th>').join('')+'</tr></thead><tbody>';
  for(const hour of tpVisibleHours){
-  html+='<tr><td class="tp-hour">'+tpFormatHour(hour)+(hour===24?'<small style="display:block;font-size:9px">(+1)</small>':'')+'</td>';
+  html+='<tr data-tp-row-hour="'+hour+'"><td class="tp-hour">'+tpFormatHour(hour)+(hour===24?'<small style="display:block;font-size:9px">(+1)</small>':'')+'</td>';
   for(let d=0;d<7;d++){
    const column=grid[d],date=days[d];
    const inst=column.starts.get(hour);
    if(inst){
     const e=inst.entry,done=!!inst.done;
-    html+='<td class="tp-filled" rowspan="'+e.duration+'"><div class="tp-event '+(done?'done':'')+'"><strong>'+safe(e.title)+'</strong>'
+    html+='<td class="tp-filled" rowspan="'+e.duration+'"><div class="tp-event '+(done?'done':'')+'" data-tp-entry-id="'+safe(e.id)+'" data-tp-entry-date="'+date+'"><strong>'+safe(e.title)+'</strong>'
      +'<small>'+tpFormatHour(e.hour)+' · '+e.duration+' س'+(e.goalId?' · مرتبط بهدف':'')+'</small>'
      +(e.note?'<small>'+safe(e.note)+'</small>':'')
      +'<div class="tp-event-actions"><button type="button" data-tp-action="toggle" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+(done?'✓ تم':'تم؟')+'</button>'
      +(done?'<button type="button" data-tp-action="hours" data-entry="'+safe(e.id)+'" data-date="'+date+'">'+Number(inst.done.hours||0)+' س</button>':'')
      +'<button type="button" data-tp-action="edit" data-id="'+safe(e.id)+'">تعديل</button></div></div></td>';
    }else if(!column.covered.has(hour)){
-    html+='<td class="tp-empty '+(date===tod?'tp-today':'')+'" data-tp-add="'+date+'" data-hour="'+hour+'" title="اضغط لجدولة مهمة في هذا الوقت"></td>';
+    html+='<td class="tp-empty '+(date===tod?'tp-today':'')+'" data-tp-date="'+date+'" data-tp-add="'+date+'" data-hour="'+hour+'" title="اضغط لجدولة مهمة في هذا الوقت"></td>';
    }
   }
   html+='</tr>';
@@ -1364,6 +1424,7 @@ function tpRenderDayBars(){
  $('#tpKpis').innerHTML=kpis.map(k=>'<div class="tp-kpi"><small>'+k[0]+'</small><strong>'+k[1]+'</strong><em>'+k[2]+'</em></div>').join('');
 }
 function tpRenderEntries(){
+ $('#tpManagedCount').textContent=String(tpEntryList().length);
  const list=tpEntryList().slice().sort((a,b)=>a.hour-b.hour||a.title.localeCompare(b.title,'ar'));
  $('#tpEntryList').innerHTML=list.length?list.map(e=>{
   const g=tpGoalList().find(x=>x.id===e.goalId),schedule=e.mode==='once'?e.date:(e.days||[]).map(i=>tpDayNames[i]).join('، ');
@@ -1404,6 +1465,93 @@ function tpRenderYear(){
  $('#tpStrategy').innerHTML='<h3>الأهداف الاستراتيجية للسنة</h3><div class="tp-goals-list">'+(strategic.length?strategic.map(tpGoalMarkup).join(''):'<div class="tp-empty-msg">حدد الهدف السنوي الرئيسي، واربط به أهدافك الشهرية والأسبوعية.</div>')+'</div>';
 }
 
+
+// Current hour is based on the device's local clock. Midnight (00:00–00:59)
+// belongs to the previous planner day, whose final hour ends at 01:00.
+function tpLiveSnapshot(at=new Date()){
+ const wallDate=tpFmtDate(at),clockHour=at.getHours(),minute=at.getMinutes();
+ const date=clockHour===0?tpShiftDate(wallDate,-1):wallDate;
+ const hour=clockHour===0?24:clockHour;
+ const isSleep=clockHour>=1&&clockHour<7;
+ const preciseHour=hour+(minute+at.getSeconds()/60)/60;
+ const active=!isSleep?tpInstances(date,date).find(x=>
+  Number(x.entry.hour)>=7&&Number(x.entry.hour)<=24&&
+  Number(x.entry.hour)<=preciseHour&&
+  Number(x.entry.hour)+Number(x.entry.duration)>preciseHour
+ ):undefined;
+ return {date,hour,minute,clockHour,isSleep,active,at};
+}
+function tpHighlightLiveGrid(snapshot){
+ const grid=$('#tpWeekGrid');if(!grid)return;
+ grid.querySelectorAll('.tp-live-hour').forEach(x=>x.classList.remove('tp-live-hour'));
+ grid.querySelectorAll('.tp-current-event').forEach(x=>x.classList.remove('tp-current-event'));
+ grid.querySelectorAll('.tp-current-cell').forEach(x=>x.classList.remove('tp-current-cell'));
+ if(snapshot.isSleep||!tpWeekDates().includes(snapshot.date))return;
+ const row=grid.querySelector('tr[data-tp-row-hour="'+snapshot.hour+'"]');
+ if(!row)return;
+ row.classList.add('tp-live-hour');
+ if(snapshot.active){
+  grid.querySelectorAll('.tp-event[data-tp-entry-date="'+snapshot.date+'"]').forEach(el=>{
+   if(el.dataset.tpEntryId===snapshot.active.entry.id)el.classList.add('tp-current-event');
+  });
+ }else{
+  const cell=row.querySelector('td.tp-empty[data-tp-date="'+snapshot.date+'"]');
+  if(cell)cell.classList.add('tp-current-cell');
+ }
+}
+function tpUpdateLiveClock(at=new Date()){
+ const el=$('#tpLivePanel');if(!el)return;
+ const s=tpLiveSnapshot(at);
+ $('#tpLiveTime').textContent=String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0');
+ $('#tpLiveDay').textContent=tpDayNames[tpDayIndex(s.date)]+' · '+s.date;
+ const state=$('#tpLiveState'),task=$('#tpLiveTask'),meta=$('#tpLiveMeta'),bar=$('#tpLiveProgress');
+ if(s.isSleep){
+  state.textContent='خارج ساعات المخطط';
+  task.textContent='وقت الراحة والنوم';
+  meta.textContent='يبدأ يومك من 07:00 صباحًا';
+  bar.style.width='0%';
+ }else if(s.active){
+  const e=s.active.entry;
+  const goal=tpGoalList().find(g=>g.id===e.goalId);
+  const finished=!!s.active.done;
+  state.textContent=finished?'✓ مهمة مسجلة كمنجزة':'◉ المهمة المجدولة الآن';
+  task.textContent=e.title;
+  meta.textContent=tpFormatHour(e.hour)+' – '+tpFormatHour(Number(e.hour)+Number(e.duration))+
+   ' · '+e.duration+' ساعة'+(goal?' · '+goal.title:'');
+  const pct=Math.max(0,Math.min(100,(s.hour+s.minute/60-Number(e.hour))/Number(e.duration)*100));
+  bar.style.width=pct.toFixed(1)+'%';
+ }else{
+  state.textContent='الساعات الحالية';
+  task.textContent='لا توجد مهمة مجدولة الآن';
+  const upcoming=tpInstances(s.date,s.date)
+   .filter(x=>Number(x.entry.hour)>s.hour&&Number(x.entry.hour)<=24)
+   .sort((a,b)=>a.entry.hour-b.entry.hour)[0];
+  meta.textContent=upcoming?'القادمة '+tpFormatHour(upcoming.entry.hour)+' · '+upcoming.entry.title:'يمكنك جدولة مهمة أو مواصلة وقتك الحر';
+  bar.style.width=((s.minute/60)*100).toFixed(1)+'%';
+ }
+ tpHighlightLiveGrid(s);
+ return s;
+}
+let tpLastFocusDate=null,tpLiveTimer=null;
+function tpClockTick(){
+ const now=new Date();
+ const focusDate=tpLiveSnapshot(now).date;
+ // Follow the new day only if the user was viewing the previous current day.
+ if(tpLastFocusDate&&focusDate!==tpLastFocusDate&&tpAgendaDay===tpLastFocusDate){
+  tpAgendaDay=focusDate;tpWeekAnchor=tpStartOfWeek(focusDate);
+  renderTimePlanner();
+ }
+ tpLastFocusDate=focusDate;
+ tpUpdateLiveClock(now);
+}
+function tpStartLiveClock(){
+ if(tpLiveTimer!==null)return;
+ tpClockTick();
+ tpLiveTimer=setInterval(tpClockTick,20000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)tpClockTick();});
+ window.addEventListener('focus',tpClockTick);
+}
+
 function tpRenderDailyAgenda(){
  const today=tpTodayPlannerDate();
  if(!tpAgendaDay)tpAgendaDay=today;
@@ -1437,6 +1585,7 @@ function tpRenderDailyAgenda(){
  $('#tpWeeklyPanel').classList.toggle('tp-show-week',tpShowWeek);
  $('#tpToggleWeekly').textContent=tpShowWeek?'إخفاء الجدول الأسبوعي':'عرض الجدول الأسبوعي ▦';
  $('#tpToggleWeekly').setAttribute('aria-expanded',String(tpShowWeek));
+ tpUpdateLiveClock();
 }
 let tpInstallPrompt=null;
 function tpHomeScreenHelp(){
@@ -1547,7 +1696,7 @@ function tpInitialize(){
  });
  tpResetEntry();tpResetGoal();
 }
-tpInitialize();tpRegisterHomeScreen();
+tpInitialize();tpRegisterHomeScreen();tpStartLiveClock();
 // --- End time planner.
 
 $('#dashFrom').value=monthStart();$('#dashTo').value=localToday();$('#reportFrom').value=monthStart();$('#reportTo').value=localToday();save();renderAll();loadReportText();renderReport();
