@@ -521,6 +521,7 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
  #page-time .tp-event-actions button{min-width:12px;flex:1 1 12px;font-size:9px;padding:0}
 }
 </style>
+<style id="shulan-goal-month-overflow">#page-time .tp-month-extra{margin-top:7px;border-top:1px solid #e8dfe0;padding:7px 3px 2px}#page-time .tp-month-extra summary{font-size:10px;color:#7b3d51;cursor:pointer}#page-time .tp-month-extra[open] summary{margin-bottom:6px}</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -588,7 +589,6 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
     <div id="tpDailyTasks" class="tp-daily-tasks"></div>
     <div class="tp-daily-footer"><button type="button" class="btn" id="tpTodayButton">اليوم</button><button type="button" class="btn" id="tpToggleWeekly" aria-expanded="false">عرض الجدول الأسبوعي ▦</button></div>
    </div>
-   <div class="tp-kpis" id="tpKpis"></div>
    <div class="panel tp-week-panel tp-show-week" id="tpWeeklyPanel">
     <div class="panel-head tp-week-head">
      <div><h2>مخطط الساعات × أيام الأسبوع</h2><p>07:00 – 01:00 · الأيام أعمدة والساعات صفوف</p></div>
@@ -601,6 +601,7 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
     <div class="tp-legend"><span><i class="tp-legend-plan"></i>ساعات مخططة</span><span><i class="tp-legend-done"></i>ساعات مؤكدة الإنجاز</span></div>
     <div id="tpWeekBars" class="tp-day-bars"></div>
    </div>
+   <div class="tp-kpis" id="tpKpis"></div>
    <div class="tp-editor-grid">
     <div class="panel" id="tpEntryPanel">
      <div class="panel-head"><div><h2 id="tpEntryHeading">جدولة مهمة في الوقت</h2><p>مثلاً: تعلّم فوتوشوب السبت 8 صباحًا لمدة ساعتين، يتكرر أسبوعيًا.</p></div></div>
@@ -1525,11 +1526,16 @@ function tpRenderYear(){
  $('#tpYearBars').innerHTML=stats.map((s,i)=>
  '<div class="tp-year-bar"><div class="tp-year-bar-track"><span style="height:'+Math.max(2,Math.round(s.planned/max*88))+'px"></span><span class="done" style="height:'+Math.max(2,Math.round(s.actual/max*88))+'px"></span></div><small>'+tpMonthNames[i].slice(0,3)+'</small></div>').join('');
  $('#tpMonths').innerHTML=months.map((m,i)=>{
-  const s=stats[i],tactical=tpGoalList().filter(g=>g.level==='tactical'&&g.startDate<=m.to&&g.endDate>=m.from);
+  const s=stats[i],order={strategic:0,tactical:1,operational:2};
+  const goals=tpGoalList().filter(g=>g.startDate<=m.to&&g.endDate>=m.from)
+   .sort((a,b)=>order[a.level]-order[b.level]||a.endDate.localeCompare(b.endDate));
+  const goalChip=g=>'<button type="button" class="tp-month-goal" data-tp-action="edit-goal" data-id="'+safe(g.id)+'" title="تعديل الهدف">'+safe(g.title)+'<small> · '+(g.level==='strategic'?'سنوي':g.level==='tactical'?'شهري':'أسبوعي')+' · '+tpGoalPercent(g)+'%'+(g.achieved?' ✓':'')+'</small></button>';
+  const goalDisplay=goals.length?goals.slice(0,3).map(goalChip).join('')+
+   (goals.length>3?'<details class="tp-month-extra"><summary>عرض '+(goals.length-3)+' أهداف أخرى</summary>'+goals.slice(3).map(goalChip).join('')+'</details>':''):
+   '<div class="tp-month-goal"><small>لا توجد أهداف محددة لهذا الشهر</small></div>';
   return '<div class="tp-month '+(localToday().slice(0,7)===m.from.slice(0,7)?'today':'')+'"><div class="tp-month-head"><b>'+tpMonthNames[i]+'</b><small>'+tpSelectedYear+'</small></div>'
    +'<div class="tp-month-meta">منجز '+s.actual+' / '+s.planned+' س · '+s.percentage+'%</div><div class="tp-prog"><span style="width:'+s.percentage+'%"></span></div>'
-   +(tactical.length?tactical.slice(0,4).map(g=>'<div class="tp-month-goal">'+safe(g.title)+'<small> · '+tpGoalPercent(g,m.from,m.to)+'%'+(g.achieved?' ✓':'')+'</small></div>').join(''):'<div class="tp-month-goal"><small>لا يوجد هدف شهري محدد بعد</small></div>')
-   +'</div>';
+   +goalDisplay+'</div>';
  }).join('');
  const strategic=tpGoalList().filter(g=>g.level==='strategic'&&g.startDate<=tpSelectedYear+'-12-31'&&g.endDate>=tpSelectedYear+'-01-01');
  $('#tpStrategy').innerHTML='<h3>الأهداف الاستراتيجية للسنة</h3><div class="tp-goals-list">'+(strategic.length?strategic.map(tpGoalMarkup).join(''):'<div class="tp-empty-msg">حدد الهدف السنوي الرئيسي، واربط به أهدافك الشهرية والأسبوعية.</div>')+'</div>';
@@ -1723,6 +1729,8 @@ function tpInitialize(){
  $('#tpNextYear').addEventListener('click',()=>{tpSelectedYear++;tpRenderYear();});
  $('#tpJumpEntry').addEventListener('click',()=>$('#tpEntryPanel').scrollIntoView({behavior:'smooth',block:'start'}));
  $('#tpJumpGoal').addEventListener('click',()=>$('#tpGoalPanel').scrollIntoView({behavior:'smooth',block:'start'}));
+ $('#tpQuickEntry').addEventListener('click',()=>{tpResetEntry();$('#tpEntryPanel').scrollIntoView({behavior:'smooth',block:'start'});$('#tpTitle').focus({preventScroll:true});});
+ $('#tpQuickGoal').addEventListener('click',()=>{tpResetGoal();$('#tpGoalPanel').scrollIntoView({behavior:'smooth',block:'start'});$('#tpGoalTitle').focus({preventScroll:true});});
  $('#page-time').addEventListener('click',event=>{
   const btn=event.target.closest('[data-tp-action]');
   if(btn){
