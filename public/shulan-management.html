@@ -566,6 +566,44 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
 }
 @media(prefers-reduced-motion:reduce){#page-dashboard .dashboard-live-dot{animation:none}#page-dashboard .dashboard-live-card{transition:none}}
 </style>
+<style id="shulan-supplier-invoices">
+/* Compact supplier purchase invoices; no stock quantities or inventory side effects. */
+.inv-panel{margin-bottom:15px;min-width:0}.inv-heading{align-items:center}.inv-heading .btn{white-space:nowrap}
+.inv-form{border-top:1px solid #e9dfe0;padding-top:15px;margin-top:13px}.inv-form[hidden]{display:none!important}
+.inv-form-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px;color:#5b293b;font-size:16px}
+.inv-close{border:0;background:#f4e9ed;border-radius:8px;color:#6c3048;font-size:22px;width:34px;height:34px;cursor:pointer}
+.inv-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;min-width:0}.inv-fields>.field{min-width:0}
+.inv-fields .field input,.inv-fields .field select{min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+.inv-fields small{font-size:10px;color:#877981;display:block;margin-top:5px;line-height:1.6}
+.inv-items-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 9px}.inv-items-heading strong{color:#663047}
+.inv-items{display:flex;flex-direction:column;gap:7px}
+.inv-item{display:grid;grid-template-columns:minmax(160px,2fr) minmax(90px,1fr) minmax(65px,.6fr) minmax(95px,1fr) minmax(90px,1fr) 30px;gap:7px;align-items:end;border:1px solid #ede2e3;border-radius:10px;background:#fdfbfb;padding:8px;min-width:0}
+.inv-item label{display:block;color:#85767e;font-size:10px;margin:0 0 4px}
+.inv-item input,.inv-item select{width:100%;min-width:0;min-height:38px;border:1px solid #e5dadd;border-radius:8px;box-sizing:border-box;font-size:12px;padding:7px;background:white;color:#392e35}
+.inv-item .inv-unit-extra{margin-top:4px}.inv-item .inv-unit-extra[hidden]{display:none!important}
+.inv-item .inv-line-total{display:flex;align-items:center;min-height:38px;font-weight:800;white-space:nowrap;color:#723349;font-size:12px;direction:ltr;justify-content:flex-end}
+.inv-item .inv-remove-item{height:34px;width:30px;border:1px solid #e7d4d8;background:#fff4f5;color:#ad455b;border-radius:7px;cursor:pointer;font-size:17px}
+.inv-subfooter{display:flex;justify-content:flex-end;margin:11px 0 19px}.inv-subfooter>div{background:#f6edf0;padding:9px 15px;border-radius:10px;display:flex;align-items:center;gap:18px;color:#774656;font-size:12px}.inv-subfooter strong{font-size:23px;color:#612337;font-variant-numeric:tabular-nums}
+.inv-form-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.inv-form-actions #invSaveState{font-size:11px;color:#7e6b75}
+.inv-attachment-hint{font-size:11px;color:#78636c;margin-top:4px}
+.inv-filters{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:10px;margin:5px 0 16px}.inv-filters .field{min-width:0}.inv-filters input{width:100%;box-sizing:border-box;min-width:0}
+.inv-summary{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 14px}
+.inv-summary-pill{border-radius:8px;background:#f9f4f5;border:1px solid #ecdfe0;padding:8px 12px;display:flex;align-items:center;gap:12px;font-size:11px;color:#886e77}.inv-summary-pill strong{color:#612a3c;font-size:15px}
+.inv-list{display:flex;flex-direction:column;gap:9px}
+.inv-card{background:#fff;border:1px solid #e9dfe1;border-radius:12px;overflow:hidden}
+.inv-card-top{display:flex;align-items:center;gap:12px;padding:12px 13px;justify-content:space-between;flex-wrap:wrap}
+.inv-card-title{min-width:0;flex:1}.inv-card-title strong{display:block;color:#54283a;font-size:14px;line-height:1.5}.inv-card-title small{display:block;color:#8d7c82;font-size:11px;line-height:1.65}
+.inv-card-money{display:flex;flex-direction:column;gap:3px;text-align:left;white-space:nowrap}.inv-card-money strong{font-size:17px;color:#64273e}.inv-card-money small{font-size:10px;color:#91818a}
+.inv-card-actions{display:flex;gap:5px;flex-wrap:wrap}
+.inv-card-actions button{border:1px solid #e3d7da;background:#fbf9fa;border-radius:7px;padding:7px 9px;color:#704052;font-size:11px;cursor:pointer}.inv-card-actions button.danger{color:#a73b56;background:#fff7f7}
+.inv-card-details{border-top:1px solid #f0e6e6;background:#fdfafb;padding:12px}.inv-card-details[hidden]{display:none!important}
+.inv-card-details table{width:100%;border-collapse:collapse;font-size:11px}.inv-card-details th,.inv-card-details td{padding:9px 5px;text-align:right;border-bottom:1px solid #ebdfe2;overflow-wrap:anywhere}.inv-card-details th{color:#816c76;font-weight:700}.inv-card-details td{color:#4a3a42}.inv-card-details td:last-child{text-align:left;white-space:nowrap}
+.inv-card-details p{font-size:11px;color:#7b6874}.inv-file-link{border:1px solid #d8c2cb;border-radius:8px;padding:8px 12px;background:#faf0f3;color:#722f48;font-size:12px;cursor:pointer;margin-top:9px}
+.inv-empty{padding:24px;border:1px dashed #dfcdd3;border-radius:10px;color:#8d7d84;text-align:center;font-size:12px}
+@media(max-width:1024px){.inv-item{grid-template-columns:minmax(0,1.8fr) minmax(0,1fr) minmax(60px,.6fr) minmax(80px,1fr);}.inv-item .inv-line-total{grid-column:1/4;justify-content:flex-start;min-height:28px}.inv-item .inv-remove-item{grid-column:4;justify-self:end}}
+@media(max-width:750px){.inv-panel{padding:13px!important}.inv-heading{align-items:flex-start}.inv-heading .btn{font-size:11px;padding:9px}.inv-fields{gap:8px}.inv-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inv-filters .field:first-child{grid-column:1/-1}.inv-item{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:7px}.inv-item .inv-line-total{grid-column:1;justify-content:flex-start}.inv-item .inv-remove-item{grid-column:2;justify-self:end}.inv-card-top{gap:9px;padding:11px}.inv-card-actions{width:100%}.inv-card-actions button{flex:1}.inv-card-details{overflow-x:auto}.inv-card-details table{min-width:350px}.inv-fields input,.inv-fields select{font-size:13px}}
+@media(max-width:365px){.inv-fields{grid-template-columns:1fr}.inv-card-money strong{font-size:15px}}
+</style>
 </head>
 <body><div id="cloudGate" role="dialog" aria-modal="true" aria-label="تسجيل دخول نظام شعلان">
  <div class="cloud-card">
@@ -590,6 +628,7 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
    <button type="button" data-page="clients"><span class="nav-icon">▣</span>العملاء</button>
    <button type="button" data-page="jobs"><span class="nav-icon">≡</span>سجل الأعمال</button>
    <button type="button" data-page="advances"><span class="nav-icon">◈</span>مبالغ العملاء</button>
+   <button type="button" data-page="purchases"><span class="nav-icon">▤</span>فواتير المشتريات</button>
    <button type="button" data-page="time"><span class="nav-icon">◷</span>الوقت والأهداف</button>
    <button type="button" data-page="reports"><span class="nav-icon">▤</span>التقرير الرسمي</button>
    <button type="button" data-page="backup"><span class="nav-icon">⚙</span>البيانات والنسخ</button>
@@ -705,6 +744,45 @@ body.tp-standalone .tp-mobile-app-top{display:flex;align-items:center;gap:10px;p
     <div class="tp-legend"><span><i class="tp-legend-plan"></i>المخطط شهريًا</span><span><i class="tp-legend-done"></i>المنجز فعليًا</span></div><div class="tp-year-bars" id="tpYearBars"></div>
     <div class="tp-months" id="tpMonths"></div>
     <div class="tp-strategy" id="tpStrategy"></div>
+   </div>
+  </section>
+  <section class="section" id="page-purchases">
+   <div class="panel inv-panel">
+    <div class="panel-head inv-heading">
+     <div><h2>فواتير المشتريات</h2><p>احتفظ بسعر كل مادة وتاريخ شرائها وفاتورة المورد؛ دون إدارة مخزون.</p></div>
+     <button type="button" class="btn primary" id="invNew">＋ فاتورة جديدة</button>
+    </div>
+    <form id="invForm" class="inv-form" hidden>
+     <div class="inv-form-head"><strong id="invFormTitle">إضافة فاتورة شراء</strong><button type="button" id="invFormClose" class="inv-close" aria-label="إغلاق">×</button></div>
+     <div class="inv-fields">
+      <div class="field"><label for="invSupplier">المورد *</label><input id="invSupplier" list="invSupplierChoices" maxlength="120" placeholder="اسم المحل أو المورد" required autocomplete="off"><datalist id="invSupplierChoices"></datalist></div>
+      <div class="field"><label for="invDate">تاريخ الشراء *</label><input id="invDate" type="date" required></div>
+      <div class="field"><label for="invNumber">رقم الفاتورة (اختياري)</label><input id="invNumber" maxlength="75" placeholder="رقم الفاتورة"></div>
+      <div class="field"><label for="invCurrency">العملة</label><select id="invCurrency"><option value="ر.ي">ريال يمني</option><option value="ر.س">ريال سعودي</option><option value="$">دولار أمريكي</option></select></div>
+     </div>
+     <div class="inv-items-heading"><strong>مواد الفاتورة</strong><button type="button" class="btn small" id="invAddItem">＋ إضافة مادة</button></div>
+     <div id="invItems" class="inv-items"></div>
+     <div class="inv-subfooter"><div><span>إجمالي الفاتورة</span><strong id="invFormTotal" dir="ltr">0</strong></div></div>
+     <div class="inv-fields inv-optional">
+      <div class="field"><label for="invNote">ملاحظة (اختياري)</label><input id="invNote" maxlength="260" placeholder="مثلاً: شراء لمشروع لوحات أو تنفيذ ديكور"></div>
+      <div class="field"><label for="invFile">صورة أو PDF للفاتورة (اختياري)</label><input id="invFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"><small>حجم الملف حتى 10 ميجابايت، ويُحفظ بشكل خاص في حسابك.</small><div id="invExistingAttachment" class="inv-attachment-hint"></div></div>
+     </div>
+     <div class="inv-form-actions">
+      <button type="submit" class="btn primary" id="invSave">حفظ الفاتورة</button>
+      <button type="button" class="btn" id="invCancel">إلغاء</button>
+      <span id="invSaveState" role="status" aria-live="polite"></span>
+     </div>
+    </form>
+   </div>
+   <div class="panel inv-panel">
+    <div class="panel-head"><div><h2>سجل المشتريات والأسعار</h2><p>يمكنك البحث باسم المورد أو المادة، وفتح أي فاتورة لعرض تفاصيل أسعارها وقت الشراء.</p></div></div>
+    <div class="inv-filters">
+     <div class="field"><label for="invSearch">البحث</label><input id="invSearch" placeholder="مورد أو مادة أو رقم فاتورة" type="search"></div>
+     <div class="field"><label for="invFrom">من تاريخ</label><input id="invFrom" type="date"></div>
+     <div class="field"><label for="invTo">إلى تاريخ</label><input id="invTo" type="date"></div>
+    </div>
+    <div id="invSummary" class="inv-summary"></div>
+    <div id="invList" class="inv-list"></div>
    </div>
   </section>
   <section class="section" id="page-advances">
