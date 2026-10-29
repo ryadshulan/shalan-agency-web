@@ -1,0 +1,96 @@
+name: Test uncluttered full-width weekly planner
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/shulan-management.html'
+      - '.github/workflows/test-shulan-full-grid.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  grid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install --prefix /tmp/shulan-grid-qa puppeteer-core@24 --no-audit --no-fund
+      - name: Check weekly grid and editable monthly goals at phone/tablet/desktop sizes
+        env:
+          NODE_PATH: /tmp/shulan-grid-qa/node_modules
+        run: |
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core'),fs=require('fs'),path=require('path');
+          const chrome=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(fs.existsSync);
+          if(!chrome)throw Error('Browser not installed');
+          (async()=>{
+           const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+           try{
+             const page=await browser.newPage();const errors=[];
+             page.on('pageerror',e=>errors.push(e.message));
+             await page.goto('file://'+path.resolve('public/shulan-management.html')+'?view=time',{waitUntil:'domcontentloaded',timeout:55000});
+             await page.waitForFunction(()=>typeof tpRenderGrid==='function'&&typeof tpUpdateLiveClock==='function',{timeout:15000});
+             await page.evaluate(()=>{
+               db={clients:[],jobs:[],reportNotes:{},cashMovements:[],timeLogs:[],
+                 timeEntries:[
+                   {id:'e1',title:'تعلّم فوتوشوب للمستوى الاحترافي',mode:'weekly',days:[0],startDate:'2026-10-24',endDate:'2026-12-31',hour:8,duration:2,goalId:'g1'},
+                   {id:'e2',title:'تنفيذ مشروع العلامة التجارية',mode:'weekly',days:[1,2],startDate:'2026-10-24',endDate:'2026-12-31',hour:10,duration:3,goalId:'g2'},
+                   {id:'e3',title:'مراجعة عملية الطباعة والأعمال اللونية',mode:'once',date:'2026-10-25',hour:23,duration:2,goalId:'g2'}
+                 ],
+                 timeGoals:[
+                   {id:'g1',level:'strategic',title:'اجتياز اختبار LinkedIn لبرنامج فوتوشوب',startDate:'2026-01-01',endDate:'2026-12-31',targetHours:250},
+                   {id:'g2',level:'tactical',title:'تطوير مهارات الإنتاج الفني',startDate:'2026-10-01',endDate:'2026-10-31',targetHours:60},
+                   {id:'g3',level:'operational',title:'إكمال عشرة تطبيقات عملية',startDate:'2026-10-24',endDate:'2026-10-30',targetHours:12}
+                 ]};
+               tpWeekAnchor='2026-10-24';tpSelectedYear=2026;renderTimePlanner();page('time');
+             });
+             for(const width of [320,360,390,768,1280]){
+               await page.setViewport({width,height:900,deviceScaleFactor:1});
+               const test=await page.evaluate(()=>{
+                 const show=x=>getComputedStyle(document.querySelector(x)).display!=='none';
+                 const wrap=document.querySelector('#tpGridScroll'),table=document.querySelector('#tpWeekGrid');
+                 const cols=[...table.querySelectorAll('thead th')].map(c=>c.textContent.trim());
+                 const todayActive=tpUpdateLiveClock(new Date(2026,9,24,8,30));
+                 return {
+                   width:innerWidth,docWidth:document.documentElement.scrollWidth,
+                   wrapWidth:wrap.clientWidth,wrapScroll:wrap.scrollWidth,
+                   wrapHeight:wrap.clientHeight,wrapScrollHeight:wrap.scrollHeight,
+                   tableWidth:Math.round(table.getBoundingClientRect().width),
+                   overflowX:getComputedStyle(wrap).overflowX,overflowY:getComputedStyle(wrap).overflowY,
+                   rows:table.querySelectorAll('tbody tr').length,columns:cols.length,
+                   hiddenHero:!show('#page-time .tp-hero'),
+                   hiddenDaily:!show('#page-time .tp-daily-panel'),
+                   hiddenGoalsList:!show('#tpGoalsList'),
+                   hiddenStrategicList:!show('#tpStrategy'),
+                   visibleGrid:show('#tpWeeklyPanel'),
+                   monthlyCount:document.querySelectorAll('#tpMonths .tp-month').length,
+                   octoberGoals:[...document.querySelectorAll('#tpMonths .tp-month')[9].querySelectorAll('[data-tp-action="edit-goal"]')].map(x=>x.textContent.trim()),
+                   liveClock:document.querySelector('#tpLiveTime').textContent,
+                   activeCard:!!document.querySelector('.tp-current-event'),
+                   buttons:!!document.querySelector('#tpQuickGoal')&&!!document.querySelector('#tpQuickEntry')
+                 };
+               });
+               console.log('FULL-WIDTH GRID QA',JSON.stringify(test));
+               const yes=(c,msg)=>{if(!c)throw Error(msg+' @'+width)};
+               yes(test.docWidth<=width+3,'Page horizontal overflow');
+               yes(test.wrapScroll<=test.wrapWidth+2,'Grid horizontal scroll');
+               yes(test.wrapScrollHeight<=test.wrapHeight+2,'Grid vertical scroll');
+               yes(test.tableWidth<=test.wrapWidth+2,'Table outside container');
+               yes(test.overflowX==='visible'&&test.overflowY==='visible','Overflow property not visible');
+               yes(test.rows===18&&test.columns===8&&test.monthlyCount===12,'Grid dimensions');
+               yes(test.hiddenHero&&test.hiddenDaily&&test.hiddenGoalsList&&test.hiddenStrategicList,'Clutter not hidden');
+               yes(test.visibleGrid&&test.buttons,'Grid or add actions hidden');
+               yes(test.octoberGoals.length===3,'Missing goal levels in monthly cards');
+               yes(test.liveClock==='08:30'&&test.activeCard,'Live time or current task not highlighted');
+             }
+             const interaction=await page.evaluate(()=>{
+               const edit=[...document.querySelectorAll('#tpMonths .tp-month')[9].querySelectorAll('[data-tp-action="edit-goal"]')][0];
+               edit.click();
+               return {name:document.querySelector('#tpGoalTitle').value,id:tpEditingGoal,goalPanel:document.querySelector('#tpGoalPanel').getBoundingClientRect().width};
+             });
+             console.log('GOAL CLICK QA',JSON.stringify(interaction));
+             if(interaction.name!=='اجتياز اختبار LinkedIn لبرنامج فوتوشوب'||interaction.id!=='g1')throw Error('Unable to edit goal from month card');
+             if(errors.length)throw Error('Browser JS errors: '+errors.join(';'));
+           }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
